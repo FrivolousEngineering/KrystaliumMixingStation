@@ -13,7 +13,7 @@ class RFIDController:
                  on_card_detected_callback: Callable[[str, str], None],
                  on_card_lost_callback: Callable[[str, str], None],
                  traits_detected_callback: Callable[[str, List[str]], None],
-                 baud_rate=9600):
+                 baud_rate=115200):
         self._baud_rate = baud_rate
         self._devices: Dict[str, RFIDDevice] = {}
         self._on_card_detected_callback = on_card_detected_callback
