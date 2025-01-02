@@ -28,7 +28,6 @@ class RFIDController:
     def start(self):
         threading.Thread(target=self._handleScanLoop, daemon=True).start()
 
-
     def _handleScanLoop(self):
         while True:
             logging.info("Checking for devices")
@@ -49,5 +48,5 @@ class RFIDController:
     def stop(self):
         with self._lock:
             for device in self._devices.values():
-                device.close()
+                device.stop()
             self._devices.clear()
