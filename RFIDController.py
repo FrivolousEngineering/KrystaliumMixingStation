@@ -9,6 +9,10 @@ from RFIDDevice import RFIDDevice
 
 
 class RFIDController:
+    """
+    Simple controller that creates an RFID device for each USB port and collects and passes through
+    all of their callbacks
+    """
     def __init__(self,
                  on_card_detected_callback: Callable[[str, str], None],
                  on_card_lost_callback: Callable[[str, str], None],
@@ -20,10 +24,10 @@ class RFIDController:
         self._on_card_lost_callback = on_card_lost_callback
         self._traits_detected_callback = traits_detected_callback
         self._lock = threading.Lock()
-        self._startScan()
 
-    def _startScan(self):
+    def start(self):
         threading.Thread(target=self._handleScanLoop, daemon=True).start()
+
 
     def _handleScanLoop(self):
         while True:

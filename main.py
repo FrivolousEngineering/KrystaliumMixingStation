@@ -39,7 +39,7 @@ if __name__ == '__main__':
     controller = RFIDController(on_card_detected_callback=onCardDetected,
                                 on_card_lost_callback = onCardLost,
                                 traits_detected_callback= traitsDetectedCallback)
-
+    controller.start()
     # block!
     while True:
         time.sleep(0.1)
