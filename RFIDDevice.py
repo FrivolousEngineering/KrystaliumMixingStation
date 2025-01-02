@@ -11,6 +11,15 @@ class RFIDDevice:
                  on_card_detected_callback: Callable[[str, str], None],
                  on_card_lost_callback: Callable[[str, str], None],
                  traits_detected_callback: Callable[[str, List[str]], None]):
+        """
+        A handler for a single USB port for an RFID krystalium card reader.
+        It will emit signals when a card is found, when it is lost and its traits have been read
+        :param port: The USB port this device is listening to
+        :param baud_rate: The baudrate it's using
+        :param on_card_detected_callback: Callback for when card is detected. First param is name of this reader, second is cardID
+        :param on_card_lost_callback: Callback for when card is lost. First param is name of this reader, second is cardID
+        :param traits_detected_callback: Callback for traits detected by the card. First param is name of reader, second is lost of strings of detected traits
+        """
         self._port = port
         self._baud_rate = baud_rate
         self._serial = None
@@ -40,7 +49,7 @@ class RFIDDevice:
     def _startSerialThreads(self) -> None:
         self._listen_thread.start()
         self._send_thread.start()
-
+    
     def _validateCardTraits(self, arguments: List[str]) -> bool:
         logging.info(f"Checking reader response {arguments}")
         if arguments[0] != "RAW" and arguments[0] != "REFINED":

@@ -1,18 +1,20 @@
+from typing import List
+
 from RFIDController import RFIDController
 import time
 import logging
 import sys
 
 
-def onCardDetected(name, card_id):
+def onCardDetected(name: str, card_id: str):
     print(f"CARD DETECTED by reader {name}: {card_id}")
 
 
-def onCardLost(name, card_id):
+def onCardLost(name: str, card_id: str):
     print(f"CARD LOST by reader {name}: {card_id}")
 
 
-def traitsDetectedCallback(name, traits):
+def traitsDetectedCallback(name: str, traits: List[str]):
     print(f"TRAITS DETECTED by reader {name}: {traits}")
 
 
@@ -30,6 +32,7 @@ def setupLogging() -> None:
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     handler.setFormatter(formatter)
     root.addHandler(handler)
+
 
 if __name__ == '__main__':
     setupLogging()
