@@ -49,8 +49,9 @@ class RFIDDevice:
     def _startSerialThreads(self) -> None:
         self._listen_thread.start()
         self._send_thread.start()
-    
-    def _validateCardTraits(self, arguments: List[str]) -> bool:
+
+    @staticmethod
+    def _validateCardTraits(arguments: List[str]) -> bool:
         logging.info(f"Checking reader response {arguments}")
         if arguments[0] != "RAW" and arguments[0] != "REFINED":
             logging.warning(f"INVALID TYPE: {arguments[1]}")
