@@ -19,14 +19,11 @@ class RFIDDevice:
         self._on_card_lost_callback = on_card_lost_callback
         self._traits_detected_callback = traits_detected_callback
         self._detected_card = None
+        self._detected_traits = None
+        self._delayed_emit = False  # If a card was detected before a name, we delay the callback
         self._request_trait_info = False  # Should we re-request trait info?
         self._listen_thread = threading.Thread(target=self._handleSerialListen, daemon=True)
         self._send_thread = threading.Thread(target=self._handleSerialSend, daemon=True)
-
-        #self._listen_thread.start()
-        #self._send_thread.start()
-
-        self._request_trait_info = False  # Should we re-request trait info?
 
         self._recreate_serial_timer = None
         self._serial_recreate_time = 5  # in seconds
@@ -43,6 +40,25 @@ class RFIDDevice:
     def _startSerialThreads(self) -> None:
         self._listen_thread.start()
         self._send_thread.start()
+
+    def _validateCardTraits(self, arguments: List[str]) -> bool:
+        logging.info(f"Checking reader response {arguments}")
+        if arguments[0] != "RAW" and arguments[0] != "REFINED":
+            logging.warning(f"INVALID TYPE: {arguments[1]}")
+            return False
+
+        # If we get "EMPTY" it means that they just got a weird tag with no traits
+        # on it. We need to fix that
+        if arguments[0] == "EMPTY":
+            logging.warning(f"EMPTY TAG")
+            return False
+
+        # We send traits back in all caps, which serves as a rudimentary check
+        # To see if the reading is correct
+        if any(arg != arg.upper() for arg in arguments[1:]):
+            logging.warning("Invalid response")
+            return False
+        return True
 
     def _createSerial(self) -> None:
         try:
@@ -89,7 +105,7 @@ class RFIDDevice:
                     self._request_trait_info = False
                 time.sleep(0.5)
             except serial.SerialException:
-                self.close()
+                self._recreateSerial()
             except Exception as e:
                 logging.error(f"Serial send error on {self._port}: {e}")
                 time.sleep(1)
@@ -100,30 +116,64 @@ class RFIDDevice:
             try:
                 line = self._serial.readline().decode("utf-8").strip()
                 if line.startswith("Tag found:"):
-                    card_id = line.replace("Tag found: ", "")
+                    response = line.replace("Tag found: ", "")
+                    arguments = response.split(" ")
+                    card_id = arguments[0]
                     self._detected_card = card_id
-                    self._on_card_detected_callback(self.name, card_id)
+                    if self.name is not None:
+                        self._on_card_detected_callback(self.name, card_id)
+                    else:
+                        logging.warning("Card was detected before a name was known, delaying callback")
+
+                    if not self._validateCardTraits(arguments[1:]):
+                        # TODO: Send read all command!
+                        self._request_trait_info = True
+                    else:
+                        self._detected_traits = arguments[1:]
+                        if self.name is not None:
+                            self._traits_detected_callback(self.name, arguments[1:])
+                        else:
+                            self._delayed_emit = True
+                            logging.warning("Card was detected before a name was known, delaying callback")
                 elif line.startswith("Tag lost:"):
                     card_id = line.replace("Tag lost: ", "")
                     self._detected_card = None
-                    self._on_card_lost_callback(self.name, card_id)
+                    self._delayed_emit = False
+                    if self.name is not None:
+                        self._on_card_lost_callback(self.name, card_id)
+                    self._detected_traits = None
                 elif line.startswith("Traits: "):
-                    traits = line.replace("Traits: ", "").split(" ")
-                    self._traits_detected_callback(self.name, traits)
+                    response = line.replace("Traits: ", "")
+                    arguments = response.split(" ")
+                    if self._validateCardTraits(arguments):
+                        self._detected_traits = arguments[1:]
+                        if self.name is not None:
+                            self._traits_detected_callback(self.name, arguments)
+                        else:
+                            self._delayed_emit = True
+                            logging.warning("Traits were detected before a name was known, delaying callback")
+                    else:
+                        logging.warning("READ ALL FAILED :(")
                 elif line.startswith("Name: "):
                     self.name = line.replace("Name: ", "")
                     logging.info(f"Device {self._port} identified as {self.name}")
+                    if self._delayed_emit:
+                        self._delayed_emit = False
+                        self._on_card_detected_callback(self.name, self._detected_card)
+                        if self._detected_traits is not None:
+                            self._traits_detected_callback(self.name, self._detected_traits)
             except serial.SerialException:
                 self._recreateSerial()
             except Exception as e:
                 logging.error(f"Serial listen error on {self._port}: {e}")
                 time.sleep(1)
 
-
-
     def _recreateSerial(self):
         logging.warning("Previously working serial has stopped working, try to re-create!")
         self._serial = None
+        self.name = None
+        self._detected_card = None
+        self._detected_traits = None
         # Try to re-create it after a few seconds
         self._recreate_serial_timer = threading.Timer(self._serial_recreate_time, self._createSerial)
         self._recreate_serial_timer.start()

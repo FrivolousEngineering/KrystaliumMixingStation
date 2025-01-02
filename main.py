@@ -3,6 +3,7 @@ import time
 import logging
 import sys
 
+
 def onCardDetected(name, card_id):
     print(f"CARD DETECTED by reader {name}: {card_id}")
 
