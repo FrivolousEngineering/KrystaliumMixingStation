@@ -16,7 +16,8 @@ class SampleController:
     def __init__(self):
         pass
 
-    def createSampleFromReaderString(self, data: str) -> Union[RawSample, RefinedSample]:
+    @staticmethod
+    def createSampleFromReaderString(data: str) -> Union[RawSample, RefinedSample]:
         """
         Create a sample from the string as provided by the RFID reader. These are the strings it provides over serial.
         """
@@ -73,7 +74,7 @@ class SampleController:
         return Vulgarity.low_mundane
 
     @staticmethod
-    def createRefinedKSampleFromRawSamples(positive_sample: RawSample, negative_sample: RawSample) -> Optional[RefinedSample]:
+    def createRefinedSampleFromRawSamples(positive_sample: RawSample, negative_sample: RawSample) -> Optional[RefinedSample]:
         if positive_sample.depleted or negative_sample.depleted:
             # One (or both) of the samples provided have already been depleted. Don't return a refined sample!
             return None
