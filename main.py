@@ -4,6 +4,8 @@ import time
 import logging
 import sys
 import os
+import pygame
+import random
 
 # Fuck around with the paths so that it can find the fe-RFID stuff.
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -42,11 +44,43 @@ def setupLogging() -> None:
     root.addHandler(handler)
 
 
+class PygameWrapper:
+    sound_0_completed_event = pygame.USEREVENT + 1
+    sound_1_completed_event = pygame.USEREVENT + 2
+    def __init__(self):
+        """
+        In order to easily handle sound (and have an event loop), we use pygame
+        """
+        pygame.init()
+
+        self._sound_0_list= [pygame.mixer.Sound("sounds/MagicOverlay/magic-normal.mp3"), pygame.mixer.Sound("sounds/MagicOverlay/magic-high.mp3"), pygame.mixer.Sound("sounds/MagicOverlay/magic-low.mp3"), pygame.mixer.Sound("sounds/MagicOverlay/magic-distorted.mp3")]
+        self._sound_1 = pygame.mixer.Sound("sounds/magical-spinning-60410.mp3")
+
+        self._sound_channel_0 = pygame.mixer.Channel(0)
+        self._sound_channel_0.set_endevent(self.sound_0_completed_event)
+        self._sound_channel_1 = pygame.mixer.Channel(1)
+        self._sound_channel_1.set_endevent(self.sound_1_completed_event)
+
+    def run(self) -> None:
+        self._sound_channel_0.queue(random.choice(self._sound_0_list))
+        self._sound_channel_1.queue(self._sound_1)
+        while True:
+            for event in pygame.event.get():
+                if event.type == self.sound_0_completed_event:
+                    self._sound_channel_0.queue(random.choice(self._sound_0_list))
+                elif event.type == self.sound_1_completed_event:
+                    self._sound_channel_1.queue(self._sound_1)
+
+                pass
+        pass
+
+
 if __name__ == '__main__':
     setupLogging()
 
-
-    controller = RFIDController(on_card_detected_callback=onCardDetected,
+    bla = PygameWrapper()
+    bla.run()
+    """controller = RFIDController(on_card_detected_callback=onCardDetected,
                                 on_card_lost_callback = onCardLost,
                                 traits_detected_callback= traitsDetectedCallback)
 
@@ -54,4 +88,6 @@ if __name__ == '__main__':
     controller.start()
     # block!
     while True:
-        time.sleep(0.1)
+        time.sleep(0.1)"""
+
+
