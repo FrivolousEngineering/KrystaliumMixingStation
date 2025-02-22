@@ -1,4 +1,4 @@
-from typing import List, Callable, Dict
+from typing import List, Callable, Dict, Optional
 
 import serial
 import logging
@@ -17,7 +17,7 @@ class RFIDController:
                  on_card_detected_callback: Callable[[str, str], None],
                  on_card_lost_callback: Callable[[str, str], None],
                  traits_detected_callback: Callable[[str, List[str]], None],
-                 baud_rate=115200):
+                 baud_rate: int=115200):
         self._baud_rate = baud_rate
         self._devices: Dict[str, RFIDDevice] = {}
         self._on_card_detected_callback = on_card_detected_callback
@@ -27,6 +27,12 @@ class RFIDController:
 
     def start(self):
         threading.Thread(target=self._handleScanLoop, daemon=True).start()
+
+    def getDeviceByName(self, name: str) -> Optional[RFIDDevice]:
+        for device in self._devices.values():
+            if device.name == name:
+                return device
+        return None
 
     def _handleScanLoop(self):
         while True:
