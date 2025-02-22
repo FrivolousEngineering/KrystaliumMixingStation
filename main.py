@@ -1,11 +1,17 @@
 from typing import List
 
-from RFIDController import RFIDController
 import time
 import logging
 import sys
+import os
 
-from SampleController import SampleController
+# Fuck around with the paths so that it can find the fe-RFID stuff.
+current_dir = os.path.dirname(os.path.abspath(__file__))
+fe_rfid_path = os.path.join(current_dir, '..', 'fe-rfid')
+sys.path.insert(0, fe_rfid_path)
+
+# Import the RFIDController from fe-rfid
+from rfid import RFIDController
 
 
 def onCardDetected(name: str, card_id: str):
@@ -40,15 +46,12 @@ if __name__ == '__main__':
     setupLogging()
 
 
-    sampleController = SampleController()
-    print(sampleController.createSampleFromReaderString("REFINED EXPANDING LIGHT EXPANDING LIGHT TARNISHED ACTIVE"))
-
-    '''controller = RFIDController(on_card_detected_callback=onCardDetected,
+    controller = RFIDController(on_card_detected_callback=onCardDetected,
                                 on_card_lost_callback = onCardLost,
-                                traits_detected_callback= traitsDetectedCallback)'''
+                                traits_detected_callback= traitsDetectedCallback)
 
 
-    #controller.start()
+    controller.start()
     # block!
-    #while True:
-    #    time.sleep(0.1)
+    while True:
+        time.sleep(0.1)
