@@ -41,7 +41,7 @@ if __name__ == '__main__':
 
 
     sampleController = SampleController()
-    print(sampleController.createSampleFromReaderString("RAW EXPANDING LIGHT EXPANDING LIGHT ACTIVE"))
+    print(sampleController.createSampleFromReaderString("REFINED EXPANDING LIGHT EXPANDING LIGHT TARNISHED ACTIVE"))
 
     '''controller = RFIDController(on_card_detected_callback=onCardDetected,
                                 on_card_lost_callback = onCardLost,
