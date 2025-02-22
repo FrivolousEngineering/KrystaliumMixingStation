@@ -1,5 +1,6 @@
-from typing import Union
+from typing import Union, Optional
 
+from Purity import Purity
 from RefinedSample import RefinedSample
 from OpposingActionController import OpposingActionController
 from OpposingTargetController import OpposingTargetController
@@ -34,7 +35,7 @@ class SampleController:
         elif properties[0] == "Refined":
             sample = RefinedSample(primary_action=properties[1], primary_target=properties[2],
                                    secondary_action=properties[3], secondary_target=properties[4],
-                                   purity = properties[5], depleted=properties[6] != "Active")
+                                   purity=properties[5], depleted=properties[6] != "Active")
         else:
             raise ValueError("Unknown sample type")
 
@@ -70,3 +71,15 @@ class SampleController:
 
         # Only one left, so it's low mundane
         return Vulgarity.low_mundane
+
+    @staticmethod
+    def createRefinedKSampleFromRawSamples(positive_sample: RawSample, negative_sample: RawSample) -> Optional[RefinedSample]:
+        if positive_sample.depleted or negative_sample.depleted:
+            # One (or both) of the samples provided have already been depleted. Don't return a refined sample!
+            return None
+
+        return RefinedSample(primary_action=positive_sample.positive_action,
+                             primary_target=negative_sample.negative_target,
+                             secondary_action=negative_sample.negative_action,
+                             secondary_target=positive_sample.positive_target, depleted=False, purity=Purity.getByScore(
+                Vulgarity.getScore(positive_sample.vulgarity) + Vulgarity.getScore(negative_sample.vulgarity)))
