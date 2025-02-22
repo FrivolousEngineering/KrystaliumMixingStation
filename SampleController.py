@@ -1,6 +1,9 @@
+from typing import Union
 
+from RefinedSample import RefinedSample
 from OpposingActionController import OpposingActionController
 from OpposingTargetController import OpposingTargetController
+from RawSample import RawSample
 
 from Vulgarity import Vulgarity
 
@@ -11,6 +14,29 @@ class SampleController:
 
     def __init__(self):
         pass
+
+    def createSampleFromReaderString(self, data: str) -> Union[RawSample, RefinedSample]:
+        """
+        Create a sample from the string as provided by the RFID reader. These are the strings it provides over serial.
+        """
+        properties = data.split(" ")
+
+        # Convert from all Uppercase to capitalized word (aka, title)
+        properties = [prop.title() for prop in properties]
+
+
+        # The first property defines if it's a Raw or a Refined type
+        if properties[0] == "Raw":
+
+            prop_dict = {"positive_action": properties[1], "positive_target": properties[2], "negative_action": properties[3], "negative_target": properties[4]}
+            vulgarity = SampleController.findVulgarityFromProperties(**prop_dict)
+            sample = RawSample(**prop_dict, vulgarity = vulgarity, depleted=properties[5] != "Active")
+        elif properties[0] == "refined":
+            sample = RefinedSample()
+        else:
+            raise ValueError("Unknown sample type")
+
+        return sample
 
 
     @staticmethod

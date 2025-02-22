@@ -5,6 +5,8 @@ import time
 import logging
 import sys
 
+from SampleController import SampleController
+
 
 def onCardDetected(name: str, card_id: str):
     print(f"CARD DETECTED by reader {name}: {card_id}")
@@ -36,10 +38,17 @@ def setupLogging() -> None:
 
 if __name__ == '__main__':
     setupLogging()
-    controller = RFIDController(on_card_detected_callback=onCardDetected,
+
+
+    sampleController = SampleController()
+    print(sampleController.createSampleFromReaderString("RAW EXPANDING LIGHT EXPANDING LIGHT ACTIVE"))
+
+    '''controller = RFIDController(on_card_detected_callback=onCardDetected,
                                 on_card_lost_callback = onCardLost,
-                                traits_detected_callback= traitsDetectedCallback)
-    controller.start()
+                                traits_detected_callback= traitsDetectedCallback)'''
+
+
+    #controller.start()
     # block!
-    while True:
-        time.sleep(0.1)
+    #while True:
+    #    time.sleep(0.1)
