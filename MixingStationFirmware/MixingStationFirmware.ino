@@ -5,10 +5,10 @@
 #define NUM_LEDS_PER_STRIP 24
 
 #define FADE_RADIUS 5  // Number of LEDs affected in the blur
-#define SPEED 0.4  // Movement speed (absolute)
+#define SPEED 0.6  // Movement speed (absolute)
 #define COOLING 1  // Flicker cooling rate
-#define SPARK_PROBABILITY 0.08   // Probability of a spark per interval (1% chance)
-#define SPARK_INTERVAL_MS 500  // How often we check for a spark
+#define SPARK_PROBABILITY 0.25   // Probability of a spark per interval (1% chance)
+#define SPARK_INTERVAL_MS 100  // How often we check for a spark
 #define COOL_INTERVAL_MS 100
 
 float position = 0.0;  // Floating point position to enable sub-pixel movement
@@ -17,8 +17,7 @@ CRGBPalette16 currentPalette;
 
 // Gradient palette (slightly purple flickering effect)
 DEFINE_GRADIENT_PALETTE(gradient) {
-    0,   0,   0, 255,   // Blue
-//  240,  120,   0, 255,   // Slightly purple
+    0,   75,   0, 255,   // Blue with tiny bit of red
   255,  255,   0, 255    // More purple
 };
 
@@ -79,8 +78,9 @@ void loop() {
     // Apply brightness based on distance
     if (distance <= FADE_RADIUS) {
       float intensity = 1.0 - (distance / FADE_RADIUS); // Linear fade
-      // Map flicker value to color from palette
-      byte colorIndex = scale8(heatMap[i], 255);
+      // Map flicker value to color from palette.
+      // TODO; For some reason if I scale it to 255 instead of 230, it gets weird jittery color effects (shifting back to full blue) at the top values.
+      byte colorIndex = scale8(heatMap[i], 230);
       leds[i] = ColorFromPalette(currentPalette, colorIndex, intensity * 255);
     }
   }
@@ -93,8 +93,17 @@ void loop() {
 }
 
 void coolDown(){
-  int cooling = random8(0, COOLING + 2);
+  
   for (int i = 0; i < NUM_LEDS_PER_STRIP; i++) {
+    int cooling = 0;
+    // Cool down based on heat.
+    if(heatMap[i] < 100) {
+      cooling = random8(0, COOLING + 1);
+    } else if (heatMap[i] < 200) {
+      cooling = random8(0, COOLING + 3);
+    } else {
+      cooling = random8(0, COOLING + 4);
+    }
     // Cool down slightly
     heatMap[i] = qsub8(heatMap[i], cooling);
   }
@@ -103,7 +112,7 @@ void coolDown(){
 // 🎇 Time-Based Flicker Effect 🎇
 void applyFlicker() {
   if (random(1000) < (SPARK_PROBABILITY * 1000)) { // Convert probability to integer check
-    int heating = random8(160, 255);
+    int heating = random8(2, 5) + random8(2, 5); // Prefer the mid values a bit over the extremes
     for (int i = 0; i < NUM_LEDS_PER_STRIP; i++) {
     
       heatMap[i] = qadd8(heatMap[i], heating);
