@@ -45,28 +45,31 @@ def setupLogging() -> None:
 
 
 class PygameWrapper:
-    sound_0_completed_event = pygame.USEREVENT + 1
-    sound_1_completed_event = pygame.USEREVENT + 2
+    overlay_sound_completed = pygame.USEREVENT + 1
+    drone_completed = pygame.USEREVENT + 2
     def __init__(self):
         """
         In order to easily handle sound (and have an event loop), we use pygame
         """
         pygame.init()
 
-        self._sound_0_list= [pygame.mixer.Sound("sounds/MagicOverlay/magic-normal.mp3"), pygame.mixer.Sound("sounds/MagicOverlay/magic-high.mp3"), pygame.mixer.Sound("sounds/MagicOverlay/magic-low.mp3"), pygame.mixer.Sound("sounds/MagicOverlay/magic-distorted.mp3")]
-        self._sound_1 = pygame.mixer.Sound("sounds/magical-spinning-fixed.mp3")
+        self._overlay_sounds= [pygame.mixer.Sound("sounds/MagicOverlay/magic-normal.mp3"), pygame.mixer.Sound("sounds/MagicOverlay/magic-high.mp3"), pygame.mixer.Sound("sounds/MagicOverlay/magic-low.mp3"), pygame.mixer.Sound("sounds/MagicOverlay/magic-distorted.mp3")]
+        self._drone_sound = pygame.mixer.Sound("sounds/magical-spinning-fixed.mp3")
 
-        self._sound_channel_0 = pygame.mixer.Channel(0)
-        self._sound_channel_0.set_endevent(self.sound_0_completed_event)
-        self._sound_channel_1 = pygame.mixer.Channel(1)
-        self._sound_channel_1.set_endevent(self.sound_1_completed_event)
+        self._overlay_sounds_count = 0
+
+        self._overlay_sound_channel = pygame.mixer.Channel(0)
+        self._overlay_sound_channel.set_endevent(self.overlay_sound_completed)
+        self._drone_sound_channel = pygame.mixer.Channel(1)
+        self._overlay_sound_channel.set_volume(0.2)
+        self._drone_sound_channel.set_endevent(self.drone_completed)
         self._device_controller = RFIDController(on_card_detected_callback=onCardDetected,
                                     on_card_lost_callback=onCardLost,
                                     traits_detected_callback=traitsDetectedCallback)
 
     def startSounds(self):
-        #self._sound_channel_0.play(random.choice(self._sound_0_list), fade_ms= 10000)
-        self._sound_channel_1.play(self._sound_1)
+        self._overlay_sound_channel.play(random.choice(self._overlay_sounds), fade_ms= 10000)
+        self._drone_sound_channel.play(self._drone_sound)
 
 
     def run(self) -> None:
@@ -78,16 +81,18 @@ class PygameWrapper:
                 device = self._device_controller.getDeviceByName("LIGHT")
                 if device:
                     found_lights = True
+                    # Since there is some time in the fadeout, we tell it to stop before the end of the soundfile
                     device.sendRawCommand("LIGHT ON 33000")
                     self.startSounds()
-            '''for event in pygame.event.get():
-                if event.type == self.sound_0_completed_event:
-                    self._sound_channel_0.play(random.choice(self._sound_0_list))
-                elif event.type == self.sound_1_completed_event:
-                    self._sound_channel_1.play(self._sound_1)
-
-                pass'''
-        pass
+            for event in pygame.event.get():
+                if event.type == self.overlay_sound_completed:
+                    self._overlay_sounds_count += 1
+                    # Okok, this is a bit nasty. But the overlay sounds are 5 sec each and the drone clip is 36...
+                    if self._overlay_sounds_count < 8:
+                        self._overlay_sound_channel.play(random.choice(self._overlay_sounds))
+                if event.type == self.drone_completed:
+                    # Reset the overlay sound count again
+                    self._overlay_sounds_count = 0
 
 
 if __name__ == '__main__':
