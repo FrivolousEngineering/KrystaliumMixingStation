@@ -71,7 +71,6 @@ class PygameWrapper:
         self._overlay_sound_channel.play(random.choice(self._overlay_sounds), fade_ms= 10000)
         self._drone_sound_channel.play(self._drone_sound)
 
-
     def run(self) -> None:
         self._device_controller.start()
 
