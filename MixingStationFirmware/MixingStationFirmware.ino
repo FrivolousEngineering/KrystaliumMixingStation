@@ -4,7 +4,7 @@
 #define RIGHTLEDRINGPIN D3
 #define NUM_LEDS_PER_STRIP 24
 
-#define FADE_RADIUS 5  // Number of LEDs affected in the blur
+#define FADE_RADIUS 6  // Number of LEDs affected in the blur
 #define SPEED 0.6  // Movement speed (absolute)
 #define COOLING 1  // Flicker cooling rate
 #define SPARK_PROBABILITY 0.25   // Probability of a spark per interval (1% chance)
@@ -17,7 +17,7 @@ CRGBPalette16 currentPalette;
 
 // Gradient palette (slightly purple flickering effect)
 DEFINE_GRADIENT_PALETTE(gradient) {
-    0,   75,   0, 255,   // Blue with tiny bit of red
+    0,   100,   0, 255,   // Blue with tiny bit of red
   255,  255,   0, 255    // More purple
 };
 
@@ -49,9 +49,6 @@ void loop() {
 
   // Update flickering effect based on time
   unsigned long currentTime = millis();
-
-
-
   
   if (currentTime - lastSparkTime >= SPARK_INTERVAL_MS) {
     lastSparkTime = currentTime; // Reset timer
@@ -75,14 +72,11 @@ void loop() {
       distance = NUM_LEDS_PER_STRIP - distance;
     }
 
-    // Apply brightness based on distance
-    if (distance <= FADE_RADIUS) {
-      float intensity = 1.0 - (distance / FADE_RADIUS); // Linear fade
-      // Map flicker value to color from palette.
-      // TODO; For some reason if I scale it to 255 instead of 230, it gets weird jittery color effects (shifting back to full blue) at the top values.
-      byte colorIndex = scale8(heatMap[i], 230);
-      leds[i] = ColorFromPalette(currentPalette, colorIndex, intensity * 255);
-    }
+    float intensity = 1.0 - (distance / FADE_RADIUS); // Linear fade
+    // Map flicker value to color from palette.
+    // TODO; For some reason if I scale it to 255 instead of 230, it gets weird jittery color effects (shifting back to full blue) at the top values.
+    byte colorIndex = scale8(heatMap[i], 230);
+    leds[i] = ColorFromPalette(currentPalette, colorIndex, intensity * 255);
   }
 
   // Apply gamma correction
