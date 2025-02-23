@@ -51,6 +51,7 @@ class PygameWrapper:
         """
         In order to easily handle sound (and have an event loop), we use pygame
         """
+        pygame.mixer.pre_init(44100, -16, 2, 2048)
         pygame.init()
 
         self._overlay_sounds= [pygame.mixer.Sound("sounds/MagicOverlay/magic-normal.mp3"), pygame.mixer.Sound("sounds/MagicOverlay/magic-high.mp3"), pygame.mixer.Sound("sounds/MagicOverlay/magic-low.mp3"), pygame.mixer.Sound("sounds/MagicOverlay/magic-distorted.mp3")]
