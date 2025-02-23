@@ -54,24 +54,39 @@ class PygameWrapper:
         pygame.init()
 
         self._sound_0_list= [pygame.mixer.Sound("sounds/MagicOverlay/magic-normal.mp3"), pygame.mixer.Sound("sounds/MagicOverlay/magic-high.mp3"), pygame.mixer.Sound("sounds/MagicOverlay/magic-low.mp3"), pygame.mixer.Sound("sounds/MagicOverlay/magic-distorted.mp3")]
-        self._sound_1 = pygame.mixer.Sound("sounds/magical-spinning-60410.mp3")
+        self._sound_1 = pygame.mixer.Sound("sounds/magical-spinning-fixed.mp3")
 
         self._sound_channel_0 = pygame.mixer.Channel(0)
         self._sound_channel_0.set_endevent(self.sound_0_completed_event)
         self._sound_channel_1 = pygame.mixer.Channel(1)
         self._sound_channel_1.set_endevent(self.sound_1_completed_event)
+        self._device_controller = RFIDController(on_card_detected_callback=onCardDetected,
+                                    on_card_lost_callback=onCardLost,
+                                    traits_detected_callback=traitsDetectedCallback)
+
+    def startSounds(self):
+        #self._sound_channel_0.play(random.choice(self._sound_0_list), fade_ms= 10000)
+        self._sound_channel_1.play(self._sound_1)
+
 
     def run(self) -> None:
-        self._sound_channel_0.queue(random.choice(self._sound_0_list))
-        self._sound_channel_1.queue(self._sound_1)
-        while True:
-            for event in pygame.event.get():
-                if event.type == self.sound_0_completed_event:
-                    self._sound_channel_0.queue(random.choice(self._sound_0_list))
-                elif event.type == self.sound_1_completed_event:
-                    self._sound_channel_1.queue(self._sound_1)
+        self._device_controller.start()
 
-                pass
+        found_lights = False
+        while True:
+            if not found_lights:
+                device = self._device_controller.getDeviceByName("LIGHT")
+                if device:
+                    found_lights = True
+                    device.sendRawCommand("LIGHT ON 33000")
+                    self.startSounds()
+            '''for event in pygame.event.get():
+                if event.type == self.sound_0_completed_event:
+                    self._sound_channel_0.play(random.choice(self._sound_0_list))
+                elif event.type == self.sound_1_completed_event:
+                    self._sound_channel_1.play(self._sound_1)
+
+                pass'''
         pass
 
 
@@ -80,9 +95,7 @@ if __name__ == '__main__':
 
     bla = PygameWrapper()
     bla.run()
-    """controller = RFIDController(on_card_detected_callback=onCardDetected,
-                                on_card_lost_callback = onCardLost,
-                                traits_detected_callback= traitsDetectedCallback)
+    """
 
 
     controller.start()

@@ -34,6 +34,7 @@ byte heatMap[NUM_LEDS_PER_STRIP] = {0};
 unsigned long lastSparkTime = 0;  // Track last time we checked for sparks
 unsigned long lastCooldownTime = 0; 
 unsigned long lastFadeTime = 0;
+unsigned long lightOffTime = 0;
 
 void setup() {
   FastLED.addLeds<WS2812, LEFTLEDRINGPIN, GRB>(leds, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
@@ -79,13 +80,22 @@ void processCommand(String command) {
   }
 }
 
-void handleLightCommand(char* argument){
-  if(argument == NULL){
+void handleLightCommand(char* arguments){
+  char* onOrOff = strtok(arguments, " ");
+  char* durationStr = strtok(NULL, " ");
+  
+  if(onOrOff == NULL){
     Serial.println("LIGHT must be provided with an argument");
-  } else if (strcmp(argument, "ON") == 0) {
+  } else if (strcmp(onOrOff, "ON") == 0) {
     heatingEnabled = true;
+    if (durationStr != NULL) {
+      unsigned long duration = atol(durationStr);
+      if (duration > 0) {
+        lightOffTime = millis() + duration;
+      }
+    }
     Serial.println("Turning lights on");
-  } else if (strcmp(argument, "OFF") == 0) {
+  } else if (strcmp(onOrOff, "OFF") == 0) {
     Serial.println("Turning lights off");
     heatingEnabled = false;
   } else {
@@ -147,6 +157,13 @@ void loop() {
         FastLED.setBrightness(0);
       }
     }
+  }
+
+  // Disable the lights if a timer was set
+  if(heatingEnabled && lightOffTime != 0 && currentTime >= lightOffTime) {
+    Serial.println("Turning lights off");
+    heatingEnabled = false;
+    lightOffTime = 0;
   }
   
   // Calculate brightness for each LED based on its distance from position
