@@ -9,6 +9,7 @@ WorkingDirectory=/home/admin/KrystaliumMixingStation
 # Use a dummy video driver since we don't need a display, and specify ALSA for audio if needed.
 Environment=SDL_VIDEODRIVER=dummy
 Environment=SDL_AUDIODRIVER=alsa
+ExecStartPre=/usr/bin/amixer sset PCM 100%
 ExecStart=/home/admin/KrystaliumMixingStation/venv/bin/python3 main.py
 Restart=always
 RestartSec=5
