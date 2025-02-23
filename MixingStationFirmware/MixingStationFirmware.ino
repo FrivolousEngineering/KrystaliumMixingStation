@@ -11,6 +11,8 @@
 #define SPARK_INTERVAL_MS 100  // How often we check for a spark
 #define COOL_INTERVAL_MS 100
 
+#define MAX_CMD_LEN 128
+
 float position = 0.0;  // Floating point position to enable sub-pixel movement
 CRGB leds[NUM_LEDS_PER_STRIP];
 CRGBPalette16 currentPalette;
@@ -37,7 +39,53 @@ void setup() {
   Serial.println("Booted");
 }
 
+void processCommand(String command) {
+
+  char cmdBuffer[MAX_CMD_LEN];
+  memset(cmdBuffer, 0, sizeof(cmdBuffer));  // Clear buffer to prevent leftover data
+
+  // Ensure we don't overflow
+  int len = command.length();
+  if (len >= MAX_CMD_LEN) {
+    Serial.println("Command too long");
+    return;
+  }
+  command.toCharArray(cmdBuffer, MAX_CMD_LEN);
+  cmdBuffer[sizeof(cmdBuffer) - 1] = '\0';
+  
+  trim(cmdBuffer);  // Trim newlines and trailing spaces
+  
+  char* keyword = strtok(cmdBuffer, " ");
+  char* argument = strtok(NULL, "");
+
+  if (keyword == NULL) return;
+  strupr(keyword);  // Convert keyword to uppercase
+
+  if (argument != NULL && strcmp(keyword, "WRITE") != 0) {
+    strupr(argument);
+  }
+  
+  if (strcmp(keyword, "NAME") == 0) {
+    handleNameCommand(argument);
+  } 
+}
+
+void handleNameCommand(char* argument) {
+  if (argument != NULL) {
+    Serial.println("Setting the name is not supported!");
+  } 
+  else {
+    Serial.println("Name: LIGHT");
+  }
+}
+
 void loop() {
+  // Listen for commands over serial
+  if (Serial.available() > 0) {
+    String command = Serial.readStringUntil('\n');
+    processCommand(command);
+  }
+  
   // Move the floating-point position
   position += SPEED;
   if (position >= NUM_LEDS_PER_STRIP) {
@@ -85,7 +133,6 @@ void loop() {
 }
 
 void coolDown(){
-  
   for (int i = 0; i < NUM_LEDS_PER_STRIP; i++) {
     int cooling = 0;
     // Cool down based on heat.
@@ -111,5 +158,12 @@ void applyFlicker() {
     
       heatMap[i] = qadd8(heatMap[i], heating);
     }
+  }
+}
+
+void trim(char* str) {
+  int len = strlen(str);
+  while (len > 0 && (str[len - 1] == '\r' || str[len - 1] == '\n' || str[len - 1] == ' ')) {
+    str[--len] = '\0';
   }
 }
