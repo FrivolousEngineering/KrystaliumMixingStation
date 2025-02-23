@@ -11,9 +11,14 @@
 #define SPARK_INTERVAL_MS 100  // How often we check for a spark
 #define COOL_INTERVAL_MS 100
 
+#define FADE_INTERVAL_MS 100 // How often should fade in fade/out trigger?
+
 #define MAX_CMD_LEN 128
 
 float position = 0.0;  // Floating point position to enable sub-pixel movement
+
+bool heatingEnabled = false;
+
 CRGB leds[NUM_LEDS_PER_STRIP];
 CRGBPalette16 currentPalette;
 
@@ -28,6 +33,7 @@ byte heatMap[NUM_LEDS_PER_STRIP] = {0};
 
 unsigned long lastSparkTime = 0;  // Track last time we checked for sparks
 unsigned long lastCooldownTime = 0; 
+unsigned long lastFadeTime = 0;
 
 void setup() {
   FastLED.addLeds<WS2812, LEFTLEDRINGPIN, GRB>(leds, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
@@ -37,6 +43,7 @@ void setup() {
 
   Serial.begin(115200);
   Serial.println("Booted");
+  FastLED.setBrightness(0); // Start with brightness off
 }
 
 void processCommand(String command) {
@@ -54,7 +61,7 @@ void processCommand(String command) {
   cmdBuffer[sizeof(cmdBuffer) - 1] = '\0';
   
   trim(cmdBuffer);  // Trim newlines and trailing spaces
-  
+
   char* keyword = strtok(cmdBuffer, " ");
   char* argument = strtok(NULL, "");
 
@@ -67,7 +74,23 @@ void processCommand(String command) {
   
   if (strcmp(keyword, "NAME") == 0) {
     handleNameCommand(argument);
-  } 
+  } else if (strcmp(keyword, "LIGHT") == 0){
+    handleLightCommand(argument);
+  }
+}
+
+void handleLightCommand(char* argument){
+  if(argument == NULL){
+    Serial.println("LIGHT must be provided with an argument");
+  } else if (strcmp(argument, "ON") == 0) {
+    heatingEnabled = true;
+    Serial.println("Turning lights on");
+  } else if (strcmp(argument, "OFF") == 0) {
+    Serial.println("Turning lights off");
+    heatingEnabled = false;
+  } else {
+    Serial.println("LIGHT must be provided with either ON or OFF");
+  }
 }
 
 void handleNameCommand(char* argument) {
@@ -108,6 +131,23 @@ void loop() {
     lastCooldownTime = currentTime;
     coolDown();
   }
+
+  if(currentTime - lastFadeTime >= FADE_INTERVAL_MS){
+    lastFadeTime = currentTime;
+    if(heatingEnabled) {
+      if(FastLED.getBrightness() + 2 < 255) {
+        FastLED.setBrightness(FastLED.getBrightness() + 2);
+      } else {
+        FastLED.setBrightness(255);
+      }
+    } else {
+      if(FastLED.getBrightness() - 3 > 0) {
+        FastLED.setBrightness(FastLED.getBrightness() - 3);
+      } else {
+        FastLED.setBrightness(0);
+      }
+    }
+  }
   
   // Calculate brightness for each LED based on its distance from position
   for (int i = 0; i < NUM_LEDS_PER_STRIP; i++) {
@@ -135,16 +175,24 @@ void loop() {
 void coolDown(){
   for (int i = 0; i < NUM_LEDS_PER_STRIP; i++) {
     int cooling = 0;
-    // Cool down based on heat.
-    if(heatMap[i] < 100) {
-      cooling = random8(0, COOLING + 1);
-    } else if (heatMap[i] < 150) {
-      cooling = random8(0, COOLING + 3);
-    } else if (heatMap[i] < 200) {
-      cooling = random8(0, COOLING + 4);
+    // Normal runnig procedure.
+    if(heatingEnabled){
+      // Cool down based on heat.
+      if(heatMap[i] < 100) {
+        cooling = random8(0, COOLING + 1);
+      } else if (heatMap[i] < 150) {
+        cooling = random8(0, COOLING + 3);
+      } else if (heatMap[i] < 200) {
+        cooling = random8(0, COOLING + 4);
+      } else {
+        cooling = random8(0, COOLING + 6);
+      }
     } else {
-      cooling = random8(0, COOLING + 6);
+      // We're closing down, Cool down with fixed rate
+       cooling = random8(0, COOLING + 2);
     }
+    
+    
     // Cool down slightly
     heatMap[i] = qsub8(heatMap[i], cooling);
   }
@@ -152,6 +200,8 @@ void coolDown(){
 
 // 🎇 Time-Based Flicker Effect 🎇
 void applyFlicker() {
+  if(!heatingEnabled) return;
+  
   if (random(1000) < (SPARK_PROBABILITY * 1000)) { // Convert probability to integer check
     int heating = random8(2, 5) + random8(2, 5); // Prefer the mid values a bit over the extremes
     for (int i = 0; i < NUM_LEDS_PER_STRIP; i++) {
