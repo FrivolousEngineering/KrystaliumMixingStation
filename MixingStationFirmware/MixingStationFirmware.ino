@@ -93,10 +93,12 @@ void coolDown(){
     // Cool down based on heat.
     if(heatMap[i] < 100) {
       cooling = random8(0, COOLING + 1);
-    } else if (heatMap[i] < 200) {
+    } else if (heatMap[i] < 150) {
       cooling = random8(0, COOLING + 3);
-    } else {
+    } else if (heatMap[i] < 200) {
       cooling = random8(0, COOLING + 4);
+    } else {
+      cooling = random8(0, COOLING + 6);
     }
     // Cool down slightly
     heatMap[i] = qsub8(heatMap[i], cooling);
