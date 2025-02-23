@@ -53,8 +53,6 @@ void loop() {
   if (currentTime - lastSparkTime >= SPARK_INTERVAL_MS) {
     lastSparkTime = currentTime; // Reset timer
     applyFlicker(); // Handle sparking logic
-    Serial.print("Current heat: ");
-    Serial.println(heatMap[0]);
   }
 
 
