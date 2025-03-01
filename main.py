@@ -74,29 +74,45 @@ class PygameWrapper:
         self._right_sample = None
         self._front_sample = None
 
+    def setErrorState(self, error_state: int):
+        light_device = self._device_controller.getDeviceByName("LIGHT")
+        volt = error_state * 50
+        light_device.sendRawCommand(f"VOLT {volt}")
+        logging.info(f"Setting error state to {volt}")
+
     def startMixingProcess(self):
         errors = []
+        error_state = None
         # Ensure that all the samples are set!
         if self._left_sample is None:
             errors.append("Left sample is missing")
+            error_state = 1
         if self._right_sample is None:
             errors.append("Right sample is missing")
+            error_state = 2
         if self._front_sample is None:
             errors.append("Front sample is missing")
+            error_state = 3
 
         if not isinstance(self._left_sample, RawSample):
             errors.append("Left sample is not of type RawSample")
+            error_state = 4
         if not isinstance(self._right_sample, RawSample):
             errors.append("Right sample is not of type RawSample")
+            error_state = 5
         if not isinstance(self._front_sample, RefinedSample):
             errors.append("Front sample is not of type RefinedSample")
+            error_state = 6
 
         if self._left_sample and self._left_sample.depleted:
             errors.append("Left sample is depleted")
+            error_state = 4
         if self._right_sample and self._right_sample.depleted:
             errors.append("Right sample is depleted")
+            error_state = 5
         if self._front_sample and not self._front_sample.depleted:
             errors.append("Front sample isn't depleted")
+            error_state = 6
 
         left_device = self._device_controller.getDeviceByName("LEFT")
         right_device = self._device_controller.getDeviceByName("RIGHT")
@@ -104,11 +120,16 @@ class PygameWrapper:
 
         if not left_device:
             errors.append("Could not find RFID reader on left")
+            error_state = 7
         if not right_device:
             errors.append("Could not find RFID reader on right")
+            error_state = 7
         if not front_device:
             errors.append("Could not find RFID reader on front")
+            error_state = 7
 
+        if error_state is not None:
+            self.setErrorState(error_state)
         if errors:
             logging.warning(f"Not starting mixing because of errors: {errors}")
             return
