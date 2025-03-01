@@ -3,6 +3,7 @@
 #define LEFTLEDRINGPIN  D2 
 #define RIGHTLEDRINGPIN D3
 #define NUM_LEDS_PER_STRIP 24
+#define VOLTMETER_PIN D5
 
 #define FADE_RADIUS 6  // Number of LEDs affected in the blur
 #define SPEED 0.6  // Movement speed (absolute)
@@ -10,13 +11,14 @@
 #define SPARK_PROBABILITY 0.25   // Probability of a spark per interval (1% chance)
 #define SPARK_INTERVAL_MS 100  // How often we check for a spark
 #define COOL_INTERVAL_MS 100
+#define VOLT_INTERVAL_MS 100
 
 #define FADE_INTERVAL_MS 100 // How often should fade in fade/out trigger?
 
 #define MAX_CMD_LEN 128
 
 float position = 0.0;  // Floating point position to enable sub-pixel movement
-
+int voltmeter_value = 0;
 bool heatingEnabled = false;
 
 CRGB leds[NUM_LEDS_PER_STRIP];
@@ -35,13 +37,14 @@ unsigned long lastSparkTime = 0;  // Track last time we checked for sparks
 unsigned long lastCooldownTime = 0; 
 unsigned long lastFadeTime = 0;
 unsigned long lightOffTime = 0;
+unsigned long lastVoltTime = 0;
 
 void setup() {
   FastLED.addLeds<WS2812, LEFTLEDRINGPIN, GRB>(leds, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
   FastLED.addLeds<WS2812, RIGHTLEDRINGPIN, GRB>(leds, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
   
   currentPalette = gradient;  // Load color palette
-
+  pinMode(VOLTMETER_PIN, OUTPUT);   
   Serial.begin(115200);
   Serial.println("Booted");
   FastLED.setBrightness(0); // Start with brightness off
@@ -77,7 +80,16 @@ void processCommand(String command) {
     handleNameCommand(argument);
   } else if (strcmp(keyword, "LIGHT") == 0){
     handleLightCommand(argument);
+  } else if (strcmp(keyword, "VOLT") == 0) {
+    handleVoltCommand(argument);
   }
+}
+
+void handleVoltCommand(char* arguments){
+  char* valueStr = strtok(arguments, " ");
+
+  unsigned long value = atol(valueStr);
+  voltmeter_value = value;
 }
 
 void handleLightCommand(char* arguments){
@@ -112,13 +124,21 @@ void handleNameCommand(char* argument) {
   }
 }
 
+void applyVolt(){
+  //if(voltmeter_value > 255) voltmeter_value = 255;
+  if(voltmeter_value < 0) voltmeter_value = 0;
+  
+  analogWrite(VOLTMETER_PIN, voltmeter_value);
+  
+}
+
 void loop() {
   // Listen for commands over serial
   if (Serial.available() > 0) {
     String command = Serial.readStringUntil('\n');
     processCommand(command);
   }
-  
+   
   // Move the floating-point position
   position += SPEED;
   if (position >= NUM_LEDS_PER_STRIP) {
@@ -136,6 +156,10 @@ void loop() {
     applyFlicker(); // Handle sparking logic
   }
 
+  if (currentTime - lastVoltTime >= VOLT_INTERVAL_MS) {
+    lastVoltTime = currentTime; // Reset timer
+    applyVolt();
+  }
 
   if (currentTime - lastCooldownTime >= COOL_INTERVAL_MS) {
     lastCooldownTime = currentTime;
