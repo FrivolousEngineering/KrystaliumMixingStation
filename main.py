@@ -1,11 +1,14 @@
 from typing import List
 
-import time
 import logging
 import sys
 import os
 import pygame
 import random
+
+from RawSample import RawSample
+from RefinedSample import RefinedSample
+from SampleController import SampleController
 
 # Fuck around with the paths so that it can find the fe-RFID stuff.
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -24,8 +27,7 @@ def onCardLost(name: str, card_id: str):
     print(f"CARD LOST by reader {name}: {card_id}")
 
 
-def traitsDetectedCallback(name: str, traits: List[str]):
-    print(f"TRAITS DETECTED by reader {name}: {traits}")
+
 
 
 def setupLogging() -> None:
@@ -66,7 +68,14 @@ class PygameWrapper:
         self._drone_sound_channel.set_endevent(self.drone_completed)
         self._device_controller = RFIDController(on_card_detected_callback=onCardDetected,
                                     on_card_lost_callback=onCardLost,
-                                    traits_detected_callback=traitsDetectedCallback)
+                                    traits_detected_callback=self.traitsDetectedCallback)
+
+
+
+    def traitsDetectedCallback(self, name: str, traits: List[str]):
+        found_sample = SampleController.createSampleFromReaderString(traits)
+        print(f"{name} found {found_sample}")
+
 
     def startSounds(self):
         self._overlay_sound_channel.play(random.choice(self._overlay_sounds), fade_ms= 10000)

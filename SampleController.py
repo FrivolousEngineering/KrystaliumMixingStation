@@ -1,10 +1,12 @@
-from typing import Union, Optional
+from typing import Union, Optional, List
 
+from Action import Action
 from Purity import Purity
 from RefinedSample import RefinedSample
 from OpposingActionController import OpposingActionController
 from OpposingTargetController import OpposingTargetController
 from RawSample import RawSample
+from Target import Target
 
 from Vulgarity import Vulgarity
 
@@ -16,12 +18,18 @@ class SampleController:
     def __init__(self):
         pass
 
+
+
     @staticmethod
-    def createSampleFromReaderString(data: str) -> Union[RawSample, RefinedSample]:
+    def createSampleFromReaderString(data: Union[str, List[str]]) -> Union[RawSample, RefinedSample]:
         """
         Create a sample from the string as provided by the RFID reader. These are the strings it provides over serial.
         """
-        properties = data.split(" ")
+
+        if isinstance(data, str):
+            properties = data.split(" ")
+        else:
+            properties = data
 
         # Convert from all Uppercase to capitalized word (aka, title)
         properties = [prop.title() for prop in properties]
@@ -36,14 +44,16 @@ class SampleController:
         elif properties[0] == "Refined":
             sample = RefinedSample(primary_action=properties[1], primary_target=properties[2],
                                    secondary_action=properties[3], secondary_target=properties[4],
-                                   purity=properties[5], depleted=properties[6] != "Active")
+                                   purity=properties[6], depleted=properties[5] != "Active")
+
+
         else:
             raise ValueError("Unknown sample type")
 
         return sample
 
     @staticmethod
-    def findVulgarityFromProperties(positive_action, negative_action, positive_target, negative_target, *args,
+    def findVulgarityFromProperties(positive_action: Action, negative_action:Action, positive_target: Target, negative_target: Target, *args,
                                     **kwargs) -> Vulgarity:
         target_invariant = positive_target == negative_target
         action_invariant = positive_action == negative_action
@@ -53,7 +63,7 @@ class SampleController:
 
         is_action_opposing = SampleController.opposingActionController.areOpposed(positive_action, negative_action)
 
-        is_target_opposing = SampleController.opposingTargetController.areOpposed(positive_target.value,
+        is_target_opposing = SampleController.opposingTargetController.areOpposed(positive_target,
                                                                                   negative_target)
 
         if target_invariant or action_invariant:
