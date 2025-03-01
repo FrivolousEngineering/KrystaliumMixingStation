@@ -72,6 +72,72 @@ class PygameWrapper:
         self._right_sample = None
         self._front_sample = None
 
+    def startMixingProcess(self):
+        errors = []
+        # Ensure that all the samples are set!
+        if self._left_sample is None:
+            errors.append("Left sample is missing")
+        if self._right_sample is None:
+            errors.append("Right sample is missing")
+        if self._front_sample is None:
+            errors.append("Front sample is missing")
+
+        if not isinstance(self._left_sample, RawSample):
+            errors.append("Left sample is not of type RawSample")
+        if not isinstance(self._right_sample, RawSample):
+            errors.append("Right sample is not of type RawSample")
+        if not isinstance(self._front_sample, RefinedSample):
+            errors.append("Front sample is not of type RefinedSample")
+
+        if self._left_sample and self._left_sample.depleted:
+            errors.append("Left sample is depleted")
+        if self._right_sample and self._right_sample.depleted:
+            errors.append("Right sample is depleted")
+        if self._front_sample and not self._front_sample.depleted:
+            errors.append("Front sample isn't depleted")
+
+        left_device = self._device_controller.getDeviceByName("LEFT")
+        right_device = self._device_controller.getDeviceByName("RIGHT")
+        front_device = self._device_controller.getDeviceByName("FRONT")
+
+        if not left_device:
+            errors.append("Could not find RFID reader on left")
+        if not right_device:
+            errors.append("Could not find RFID reader on right")
+        if not front_device:
+            errors.append("Could not find RFID reader on front")
+
+        if errors:
+            logging.warning(f"Not starting mixing because of errors: {errors}")
+            return
+
+        # Everything should be good! Whooo
+        new_sample = SampleController.createRefinedSampleFromRawSamples(self._left_sample, self._right_sample)
+        self.markSampleAsDepleted("RIGHT")
+        self.markSampleAsDepleted("LEFT")
+
+        trait_list = [new_sample.primary_action, new_sample.primary_target, new_sample.secondary_action, new_sample.secondary_target, new_sample.purity, "ACTIVE"]
+
+        trait_list = [str(trait).upper() for trait in trait_list]
+        print("WRITING!", trait_list)
+        front_device.writeSample("REFINED", trait_list)
+        # TODO: Actually write the new traits to front
+
+
+
+
+
+    def markSampleAsDepleted(self, reader_name: str):
+        """
+        This function marks a sample that is on the reader (as defined by reader name) as depleted.
+        This will write some data to the tag
+        """
+        device = self._device_controller.getDeviceByName(reader_name)
+        if device:
+            device.sendRawCommand("DEPLETESAMPLE")
+        else:
+            logging.warning(f"Failed to mark sample as depleted for reader {reader_name}")
+
     def onCardLost(self, name: str, card_id: str):
         logging.info(f"Card lost by reader {name}")
         if name == "LEFT":
@@ -100,7 +166,7 @@ class PygameWrapper:
             self._front_sample = found_sample
         else:
             logging.warning(f"Got a reader with a weird name: {name}")
-
+        self.startMixingProcess()
 
     def startSounds(self):
         self._overlay_sound_channel.play(random.choice(self._overlay_sounds), fade_ms= 10000)
@@ -115,9 +181,13 @@ class PygameWrapper:
                 device = self._device_controller.getDeviceByName("LIGHT")
                 if device:
                     found_lights = True
+                    # Send a command so that we know stuff has booted
+                    device.sendRawCommand("LIGHT ON 1000")
+
+
                     # Since there is some time in the fadeout, we tell it to stop before the end of the soundfile
-                    device.sendRawCommand("LIGHT ON 33000")
-                    self.startSounds()
+                    #device.sendRawCommand("LIGHT ON 33000")
+                    #self.startSounds()
             for event in pygame.event.get():
                 if event.type == self.overlay_sound_completed:
                     self._overlay_sounds_count += 1
