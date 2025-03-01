@@ -68,10 +68,10 @@ class PygameWrapper:
                                     on_card_lost_callback=self.onCardLost,
                                     traits_detected_callback=self.traitsDetectedCallback)
 
-        self._left_sample = SampleController.createSampleFromReaderString("RAW RELEASING SOLID ABSORBING GAS ACTIVE")
-        self._right_sample = SampleController.createSampleFromReaderString("RAW HEATING FLESH COOLING MIND ACTIVE")
-        '''self._left_sample = None
-        self._right_sample = None'''
+        '''self._left_sample = SampleController.createSampleFromReaderString("RAW RELEASING SOLID ABSORBING GAS ACTIVE")
+        self._right_sample = SampleController.createSampleFromReaderString("RAW HEATING FLESH COOLING MIND ACTIVE")'''
+        self._left_sample = None
+        self._right_sample = None
         self._front_sample = None
 
     def startMixingProcess(self):
@@ -121,10 +121,8 @@ class PygameWrapper:
         trait_list = [new_sample.primary_action, new_sample.primary_target, new_sample.secondary_action, new_sample.secondary_target, new_sample.purity]
 
         trait_list = [str(trait.value).upper() for trait in trait_list]
-        print("WRITING!", trait_list)
+        logging.info("WRITING!", trait_list)
         front_device.writeSample("REFINED", trait_list)
-        quit()
-        # TODO: Actually write the new traits to front
 
 
     def markSampleAsDepleted(self, reader_name: str):
@@ -166,7 +164,6 @@ class PygameWrapper:
             self._front_sample = found_sample
         else:
             logging.warning(f"Got a reader with a weird name: {name}")
-        self.startMixingProcess()
 
     def startSounds(self):
         self._overlay_sound_channel.play(random.choice(self._overlay_sounds), fade_ms= 10000)
