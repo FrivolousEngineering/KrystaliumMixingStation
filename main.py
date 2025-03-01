@@ -68,8 +68,10 @@ class PygameWrapper:
                                     on_card_lost_callback=self.onCardLost,
                                     traits_detected_callback=self.traitsDetectedCallback)
 
-        self._left_sample = None
-        self._right_sample = None
+        self._left_sample = SampleController.createSampleFromReaderString("RAW RELEASING SOLID ABSORBING GAS ACTIVE")
+        self._right_sample = SampleController.createSampleFromReaderString("RAW HEATING FLESH COOLING MIND ACTIVE")
+        '''self._left_sample = None
+        self._right_sample = None'''
         self._front_sample = None
 
     def startMixingProcess(self):
@@ -109,22 +111,20 @@ class PygameWrapper:
 
         if errors:
             logging.warning(f"Not starting mixing because of errors: {errors}")
-            return
+            #return
 
         # Everything should be good! Whooo
         new_sample = SampleController.createRefinedSampleFromRawSamples(self._left_sample, self._right_sample)
         self.markSampleAsDepleted("RIGHT")
         self.markSampleAsDepleted("LEFT")
 
-        trait_list = [new_sample.primary_action, new_sample.primary_target, new_sample.secondary_action, new_sample.secondary_target, new_sample.purity, "ACTIVE"]
+        trait_list = [new_sample.primary_action, new_sample.primary_target, new_sample.secondary_action, new_sample.secondary_target, new_sample.purity]
 
-        trait_list = [str(trait).upper() for trait in trait_list]
+        trait_list = [str(trait.value).upper() for trait in trait_list]
         print("WRITING!", trait_list)
         front_device.writeSample("REFINED", trait_list)
+        quit()
         # TODO: Actually write the new traits to front
-
-
-
 
 
     def markSampleAsDepleted(self, reader_name: str):
