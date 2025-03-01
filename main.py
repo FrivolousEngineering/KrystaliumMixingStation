@@ -23,8 +23,6 @@ def onCardDetected(name: str, card_id: str):
     print(f"CARD DETECTED by reader {name}: {card_id}")
 
 
-def onCardLost(name: str, card_id: str):
-    print(f"CARD LOST by reader {name}: {card_id}")
 
 
 
@@ -67,14 +65,41 @@ class PygameWrapper:
         self._overlay_sound_channel.set_volume(0.2)
         self._drone_sound_channel.set_endevent(self.drone_completed)
         self._device_controller = RFIDController(on_card_detected_callback=onCardDetected,
-                                    on_card_lost_callback=onCardLost,
+                                    on_card_lost_callback=self.onCardLost,
                                     traits_detected_callback=self.traitsDetectedCallback)
 
+        self._left_sample = None
+        self._right_sample = None
+        self._front_sample = None
 
+    def onCardLost(self, name: str, card_id: str):
+        logging.info(f"Card lost by reader {name}")
+        if name == "LEFT":
+            self._left_sample = None
+        elif name == "RIGHT":
+            self._right_sample = None
+        elif name == "FRONT":
+            self._front_sample = None
+        else:
+            logging.warning(f"Got a reader with a weird name (lost): {name}")
 
     def traitsDetectedCallback(self, name: str, traits: List[str]):
-        found_sample = SampleController.createSampleFromReaderString(traits)
-        print(f"{name} found {found_sample}")
+        try:
+            found_sample = SampleController.createSampleFromReaderString(traits)
+        except:
+            logging.error(f"Something went wrong parsing the sample with traits {traits} on reader {name}")
+            return
+
+        logging.info(f"Reader {name} found sample {found_sample}")
+
+        if name == "LEFT":
+            self._left_sample = found_sample
+        elif name == "RIGHT":
+            self._right_sample = found_sample
+        elif name == "FRONT":
+            self._front_sample = found_sample
+        else:
+            logging.warning(f"Got a reader with a weird name: {name}")
 
 
     def startSounds(self):
