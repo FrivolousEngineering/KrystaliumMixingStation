@@ -111,7 +111,7 @@ class PygameWrapper:
 
         if errors:
             logging.warning(f"Not starting mixing because of errors: {errors}")
-            #return
+            return
 
         # Everything should be good! Whooo
         new_sample = SampleController.createRefinedSampleFromRawSamples(self._left_sample, self._right_sample)
@@ -123,6 +123,11 @@ class PygameWrapper:
         trait_list = [str(trait.value).upper() for trait in trait_list]
         logging.info("WRITING!", trait_list)
         front_device.writeSample("REFINED", trait_list)
+
+        # Start the light effects
+        light_device = self._device_controller.getDeviceByName("LIGHT")
+        light_device.sendRawCommand("LIGHT ON 33000")
+        self.startSounds()
 
 
     def markSampleAsDepleted(self, reader_name: str):
@@ -181,10 +186,6 @@ class PygameWrapper:
                     # Send a command so that we know stuff has booted
                     device.sendRawCommand("LIGHT ON 1000")
 
-
-                    # Since there is some time in the fadeout, we tell it to stop before the end of the soundfile
-                    #device.sendRawCommand("LIGHT ON 33000")
-                    #self.startSounds()
             for event in pygame.event.get():
                 if event.type == self.overlay_sound_completed:
                     self._overlay_sounds_count += 1
