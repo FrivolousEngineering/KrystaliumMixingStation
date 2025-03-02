@@ -47,6 +47,10 @@ def setupLogging() -> None:
 class PygameWrapper:
     overlay_sound_completed = pygame.USEREVENT + 1
     drone_completed = pygame.USEREVENT + 2
+    error_reset = pygame.USEREVENT + 3
+
+    ERROR_TIMEOUT = 10000  # 10 seconds  # After how many seconds should the error on voltmeter be removed?
+
     def __init__(self):
         """
         In order to easily handle sound (and have an event loop), we use pygame
@@ -80,8 +84,11 @@ class PygameWrapper:
     def setErrorState(self, error_state: int):
         light_device = self._device_controller.getDeviceByName("LIGHT")
         volt = error_state * 30
-        light_device.sendRawCommand(f"VOLT {volt}")
-        logging.info(f"Setting error state to {volt}")
+        if light_device:
+            light_device.sendRawCommand(f"VOLT {volt}")
+            logging.info(f"Setting error state to {volt}")
+        if error_state > 0:
+            self._triggerEvent(self.error_reset, self.ERROR_TIMEOUT)
 
     def startMixingProcess(self):
         if self._is_mixing:
@@ -221,7 +228,7 @@ class PygameWrapper:
                 device = self._device_controller.getDeviceByName("LIGHT")
                 if device:
                     found_lights = True
-
+                    self.setErrorState(0)
                     # Send a command so that we know stuff has booted
                     device.sendRawCommand("LIGHT ON 1000")
 
@@ -244,6 +251,9 @@ class PygameWrapper:
                     front_device = self._device_controller.getDeviceByName("FRONT")
                     front_device.writeSample("REFINED", trait_list)
                     self._sample_to_write = None
+
+                if event.type == self.error_reset:
+                    self.setErrorState(0)
 
 
 
