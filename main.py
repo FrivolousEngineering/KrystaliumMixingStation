@@ -75,6 +75,7 @@ class PygameWrapper:
         self._front_sample = None
 
         self._is_mixing = False  # Is the mixing station doing it's thing (eg lights & sound are on)
+        self._sample_to_write = None
 
     def setErrorState(self, error_state: int):
         light_device = self._device_controller.getDeviceByName("LIGHT")
@@ -142,15 +143,9 @@ class PygameWrapper:
             return
 
         # Everything should be good! Whooo
-        new_sample = SampleController.createRefinedSampleFromRawSamples(self._left_sample, self._right_sample)
+        self._sample_to_write = SampleController.createRefinedSampleFromRawSamples(self._left_sample, self._right_sample)
         #self.markSampleAsDepleted("RIGHT")
         #self.markSampleAsDepleted("LEFT")
-
-        trait_list = [new_sample.primary_action, new_sample.primary_target, new_sample.secondary_action, new_sample.secondary_target, new_sample.purity]
-
-        trait_list = [str(trait.value).upper() for trait in trait_list]
-        logging.info(f"WRITING! {trait_list}")
-        front_device.writeSample("REFINED", trait_list)
 
         # Start the light effects
         light_device = self._device_controller.getDeviceByName("LIGHT")
@@ -220,7 +215,6 @@ class PygameWrapper:
     def run(self) -> None:
         self._device_controller.start()
 
-
         found_lights = False
         while True:
             if not found_lights:
@@ -238,10 +232,19 @@ class PygameWrapper:
                     if self._overlay_sounds_count < 8:
                         self._overlay_sound_channel.play(random.choice(self._overlay_sounds))
                 if event.type == self.drone_completed:
-                    # Reset the overlay sound count again
+                    # Mixing has completed!
                     self._overlay_sounds_count = 0
                     self._is_mixing = False
-                    
+
+                    trait_list = [self._sample_to_write.primary_action, self._sample_to_write.primary_target, self._sample_to_write.secondary_action,
+                                  self._sample_to_write.secondary_target, self._sample_to_write.purity]
+
+                    trait_list = [str(trait.value).upper() for trait in trait_list]
+                    logging.info(f"WRITING! {trait_list}")
+                    front_device = self._device_controller.getDeviceByName("FRONT")
+                    front_device.writeSample("REFINED", trait_list)
+                    self._sample_to_write = None
+
 
 
 if __name__ == '__main__':
