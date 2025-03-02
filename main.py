@@ -76,7 +76,7 @@ class PygameWrapper:
 
     def setErrorState(self, error_state: int):
         light_device = self._device_controller.getDeviceByName("LIGHT")
-        volt = error_state * 50
+        volt = error_state * 30
         light_device.sendRawCommand(f"VOLT {volt}")
         logging.info(f"Setting error state to {volt}")
 
@@ -89,17 +89,17 @@ class PygameWrapper:
             error_state = 1
         if self._right_sample is None:
             errors.append("Right sample is missing")
-            error_state = 2
+            error_state = 3
         if self._front_sample is None:
             errors.append("Front sample is missing")
-            error_state = 3
+            error_state = 5
 
         if not isinstance(self._left_sample, RawSample):
             errors.append("Left sample is not of type RawSample")
-            error_state = 4
+            error_state = 2
         if not isinstance(self._right_sample, RawSample):
             errors.append("Right sample is not of type RawSample")
-            error_state = 5
+            error_state = 4
         if not isinstance(self._front_sample, RefinedSample):
             errors.append("Front sample is not of type RefinedSample")
             error_state = 6
@@ -198,12 +198,15 @@ class PygameWrapper:
     def run(self) -> None:
         self._device_controller.start()
 
+        #light_device = self._device_controller.getDeviceByName("LIGHT")
+
         found_lights = False
         while True:
             if not found_lights:
                 device = self._device_controller.getDeviceByName("LIGHT")
                 if device:
                     found_lights = True
+
                     # Send a command so that we know stuff has booted
                     device.sendRawCommand("LIGHT ON 1000")
 
