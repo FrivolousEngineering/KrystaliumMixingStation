@@ -3,7 +3,7 @@
 #define LEFTLEDRINGPIN  D2 
 #define RIGHTLEDRINGPIN D3
 #define NUM_LEDS_PER_STRIP 24
-#define VOLTMETER_PIN D5
+#define VOLTMETER_PIN D6
 
 #define FADE_RADIUS 6  // Number of LEDs affected in the blur
 #define SPEED 0.6  // Movement speed (absolute)
