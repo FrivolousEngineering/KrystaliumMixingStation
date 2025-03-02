@@ -74,6 +74,8 @@ class PygameWrapper:
         self._right_sample = None
         self._front_sample = None
 
+        self._is_mixing = False  # Is the mixing station doing it's thing (eg lights & sound are on)
+
     def setErrorState(self, error_state: int):
         light_device = self._device_controller.getDeviceByName("LIGHT")
         volt = error_state * 30
@@ -81,6 +83,10 @@ class PygameWrapper:
         logging.info(f"Setting error state to {volt}")
 
     def startMixingProcess(self):
+        if self._is_mixing:
+            logging.info("Mixing is already happening. Cant start twice")
+            return
+
         errors = []
         error_state = None
         # Ensure that all the samples are set!
@@ -130,25 +136,40 @@ class PygameWrapper:
 
         if error_state is not None:
             self.setErrorState(error_state)
+
         if errors:
             logging.warning(f"Not starting mixing because of errors: {errors}")
             return
 
         # Everything should be good! Whooo
         new_sample = SampleController.createRefinedSampleFromRawSamples(self._left_sample, self._right_sample)
-        self.markSampleAsDepleted("RIGHT")
-        self.markSampleAsDepleted("LEFT")
+        #self.markSampleAsDepleted("RIGHT")
+        #self.markSampleAsDepleted("LEFT")
 
         trait_list = [new_sample.primary_action, new_sample.primary_target, new_sample.secondary_action, new_sample.secondary_target, new_sample.purity]
 
         trait_list = [str(trait.value).upper() for trait in trait_list]
-        logging.info("WRITING!", trait_list)
+        logging.info(f"WRITING! {trait_list}")
         front_device.writeSample("REFINED", trait_list)
 
         # Start the light effects
         light_device = self._device_controller.getDeviceByName("LIGHT")
         light_device.sendRawCommand("LIGHT ON 33000")
         self.startSounds()
+        self._is_mixing = True
+
+    @staticmethod
+    def _triggerEvent(event_type, min_time: int, max_time: int = 0) -> None:
+        """
+        Trigger an event for the pygame loop
+        :param event_type:
+        :param min_time: The minimum time it should take for this to be triggered.
+        :param max_time: The max time that this event should be triggered in. If left to 0, no randomness is aplied and
+                            the min_time is leading
+        :return:
+        """
+        time_to_use = random.randint(min_time, max_time) if max_time != 0 else min_time
+        pygame.time.set_timer(event_type, time_to_use, loops=1)
 
 
     def markSampleAsDepleted(self, reader_name: str):
@@ -188,6 +209,7 @@ class PygameWrapper:
             self._right_sample = found_sample
         elif name == "FRONT":
             self._front_sample = found_sample
+            self.startMixingProcess() # Debug code
         else:
             logging.warning(f"Got a reader with a weird name: {name}")
 
@@ -198,7 +220,6 @@ class PygameWrapper:
     def run(self) -> None:
         self._device_controller.start()
 
-        #light_device = self._device_controller.getDeviceByName("LIGHT")
 
         found_lights = False
         while True:
@@ -219,6 +240,8 @@ class PygameWrapper:
                 if event.type == self.drone_completed:
                     # Reset the overlay sound count again
                     self._overlay_sounds_count = 0
+                    self._is_mixing = False
+                    
 
 
 if __name__ == '__main__':
