@@ -163,6 +163,11 @@ class PygameWrapper:
         self.startSounds()
         self._is_mixing = True
 
+
+    def _lightCallback(self, line):
+        print("CALLBACK " , line)
+        pass
+
     @staticmethod
     def _triggerEvent(event_type, min_time: int, max_time: int = 0) -> None:
         """
@@ -237,6 +242,7 @@ class PygameWrapper:
                 device = self._device_controller.getDeviceByName("LIGHT")
                 if device:
                     found_lights = True
+                    device.setCustomResponseCallback(self._lightCallback)
                     self.setErrorState(0)
                     # Send a command so that we know stuff has booted
                     device.sendRawCommand("LIGHT ON 1000")
