@@ -4,6 +4,7 @@
 #define RIGHTLEDRINGPIN D3
 #define NUM_LEDS_PER_STRIP 24
 #define VOLTMETER_PIN D6
+#define TILTPIN A0
 
 #define FADE_RADIUS 6  // Number of LEDs affected in the blur
 #define SPEED 0.6  // Movement speed (absolute)
@@ -160,6 +161,8 @@ void loop() {
     String command = Serial.readStringUntil('\n');
     processCommand(command);
   }
+
+  Serial.println(analogRead(TILTPIN));
    
   // Move the floating-point position
   position += SPEED;

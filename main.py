@@ -60,6 +60,7 @@ class PygameWrapper:
 
         self._overlay_sounds= [pygame.mixer.Sound("sounds/MagicOverlay/magic-normal.mp3"), pygame.mixer.Sound("sounds/MagicOverlay/magic-high.mp3"), pygame.mixer.Sound("sounds/MagicOverlay/magic-low.mp3"), pygame.mixer.Sound("sounds/MagicOverlay/magic-distorted.mp3")]
         self._drone_sound = pygame.mixer.Sound("sounds/magical-spinning-fixed.mp3")
+        self._final_bell_sound = pygame.mixer.Sound("sounds/final-bell.mp3")
 
         self._overlay_sounds_count = 0
 
@@ -68,6 +69,8 @@ class PygameWrapper:
         self._drone_sound_channel = pygame.mixer.Channel(1)
         self._overlay_sound_channel.set_volume(0.2)
         self._drone_sound_channel.set_endevent(self.drone_completed)
+
+        self._final_bell_channel = pygame.mixer.Channel(2)
         self._device_controller = RFIDController(on_card_detected_callback=onCardDetected,
                                     on_card_lost_callback=self.onCardLost,
                                     traits_detected_callback=self.traitsDetectedCallback)
@@ -257,6 +260,8 @@ class PygameWrapper:
                     front_device = self._device_controller.getDeviceByName("FRONT")
                     front_device.writeSample("REFINED", trait_list)
                     self._sample_to_write = None
+                    # Play PING sound
+                    self._final_bell_channel.play(self._final_bell_sound)
 
                 if event.type == self.error_reset:
                     self.setErrorState(0)
