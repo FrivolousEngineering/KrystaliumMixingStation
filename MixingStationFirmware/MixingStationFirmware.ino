@@ -46,8 +46,9 @@ int rightBrightness = 0;
 int leftFlashing = false;
 int rightFlashing = false;
 
-bool lastReportedSwitchState = false; // Open
-int switchCountState = 0;
+bool leftFlashingRed = false;
+bool rightFlashingRed = false;
+
 
 void setup() {
   FastLED.addLeds<WS2812, LEFTLEDRINGPIN, GRB>(leds, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
@@ -94,19 +95,36 @@ void processCommand(String command) {
     handleVoltCommand(argument);
   } else if (strcmp(keyword, "FLASH") == 0) {
     handleFlashCommand(argument);
+  } else if (strcmp(keyword, "ERROR") == 0) {
+    handleErrorCommand(argument);
+  }
+}
+
+void handleErrorCommand(char* arguments) {
+  char* directionStr = strtok(arguments, " ");
+  handleFlashCommand(directionStr);
+  
+  if(strcmp(directionStr, "RIGHT") != 0){
+    rightFlashingRed = true;
+  }
+  if(strcmp(directionStr, "LEFT") != 0){
+    leftFlashingRed = true;
   }
 }
 
 void handleFlashCommand(char* arguments) {
-  if(strcmp(arguments, "RIGHT") != 0) {
+
+  char* directionStr = strtok(arguments, " ");
+  if(strcmp(directionStr, "RIGHT") != 0) {
     Serial.println("LEFT!");
     leftBrightness = 0;
     leftFlashing = true;
-  } else if(strcmp(arguments, "LEFT") != 0) {
+    leftFlashingRed = false;
+  } else if(strcmp(directionStr, "LEFT") != 0) {
     Serial.println("RIGHT");
     rightBrightness = 0;
     rightFlashing = true;
-    
+    rightFlashingRed = false; 
   }
 }
   
@@ -165,22 +183,6 @@ void loop() {
     processCommand(command);
   }
 
-  bool currentSwitchState = (analogRead(TILTPIN) > 512);
-
-  if (currentSwitchState != lastReportedSwitchState) {
-    // A potential change detected; count this tick.
-    switchCountState++;
-    if (switchCountState >= 10) {
-      // Confirmed state change after 5 consecutive ticks.
-      lastReportedSwitchState = currentSwitchState;
-      Serial.println(currentSwitchState ? "SWITCH: up" : "SWITCH: down");
-      switchCountState = 0; // Reset counter after state change.
-    }
-  } else {
-    // No change detected, so reset counter.
-    switchCountState = 0;
-  }
-  
    
   // Move the floating-point position
   position += SPEED;
@@ -199,8 +201,19 @@ void loop() {
   if(leftBrightness == 0 && rightBrightness == 0) {
     fill_solid(leds, NUM_LEDS_PER_STRIP, CRGB::Black);
   } else {
-    fill_solid(leds, NUM_LEDS_PER_STRIP, CRGB::Blue);
+    if(rightFlashingRed){
+      fill_solid(leds, NUM_LEDS_PER_STRIP, CRGB::Red);
+    }  else {
+      fill_solid(leds, NUM_LEDS_PER_STRIP, CRGB::Blue);
+    }
     FastLED[0].showLeds(leftBrightness);
+    
+    if(leftFlashingRed){
+      fill_solid(leds, NUM_LEDS_PER_STRIP, CRGB::Red);
+    }  else {
+      fill_solid(leds, NUM_LEDS_PER_STRIP, CRGB::Blue);
+    }
+
     FastLED[1].showLeds(rightBrightness);
 
     if(!rightFlashing) {

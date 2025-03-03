@@ -227,7 +227,7 @@ class PygameWrapper:
                 light_device.sendRawCommand("FLASH RIGHT")
         elif name == "FRONT":
             self._front_sample = found_sample
-            #self.startMixingProcess() # Debug code
+            
         else:
             logging.warning(f"Got a reader with a weird name: {name}")
 
