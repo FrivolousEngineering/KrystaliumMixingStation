@@ -48,6 +48,7 @@ class PygameWrapper:
     overlay_sound_completed = pygame.USEREVENT + 1
     drone_completed = pygame.USEREVENT + 2
     error_reset = pygame.USEREVENT + 3
+    bell_completed = pygame.USEREVENT + 4
 
     ERROR_TIMEOUT = 10000  # 10 seconds  # After how many seconds should the error on voltmeter be removed?
 
@@ -71,6 +72,7 @@ class PygameWrapper:
         self._drone_sound_channel.set_endevent(self.drone_completed)
 
         self._final_bell_channel = pygame.mixer.Channel(2)
+        self._final_bell_channel.set_endevent(self.bell_completed)
         self._device_controller = RFIDController(on_card_detected_callback=onCardDetected,
                                     on_card_lost_callback=self.onCardLost,
                                     traits_detected_callback=self.traitsDetectedCallback)
@@ -238,6 +240,8 @@ class PygameWrapper:
                         self.startMixingProcess()
         elif name == "FRONT":
             self._front_sample = found_sample
+            if (self._left_sample is None or self._right_sample is None) and not self._is_mixing:
+                light_device.sendRawCommand("ERROR BOTH")
         else:
             logging.warning(f"Got a reader with a weird name: {name}")
 
@@ -268,7 +272,7 @@ class PygameWrapper:
                 if event.type == self.drone_completed:
                     # Mixing has completed!
                     self._overlay_sounds_count = 0
-                    self._is_mixing = False
+
 
                     trait_list = [self._sample_to_write.primary_action, self._sample_to_write.primary_target, self._sample_to_write.secondary_action,
                                   self._sample_to_write.secondary_target, self._sample_to_write.purity]
@@ -283,6 +287,9 @@ class PygameWrapper:
 
                 if event.type == self.error_reset:
                     self.setErrorState(0)
+
+                if event.type == self.bell_completed:
+                    self._is_mixing = False
 
 
 
