@@ -39,6 +39,12 @@ unsigned long lastFadeTime = 0;
 unsigned long lightOffTime = 0;
 unsigned long lastVoltTime = 0;
 
+int leftBrightness = 0;
+int rightBrightness = 0;
+
+int leftFlashing = false;
+int rightFlashing = false;
+
 void setup() {
   FastLED.addLeds<WS2812, LEFTLEDRINGPIN, GRB>(leds, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
   FastLED.addLeds<WS2812, RIGHTLEDRINGPIN, GRB>(leds, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
@@ -82,8 +88,24 @@ void processCommand(String command) {
     handleLightCommand(argument);
   } else if (strcmp(keyword, "VOLT") == 0) {
     handleVoltCommand(argument);
+  } else if (strcmp(keyword, "FLASH") == 0) {
+    handleFlashCommand(argument);
   }
 }
+
+void handleFlashCommand(char* arguments) {
+  if(strcmp(arguments, "RIGHT") != 0) {
+    Serial.println("LEFT!");
+    leftBrightness = 0;
+    leftFlashing = true;
+  } else if(strcmp(arguments, "LEFT") != 0) {
+    Serial.println("RIGHT");
+    rightBrightness = 0;
+    rightFlashing = true;
+    
+  }
+}
+  
 
 void handleVoltCommand(char* arguments){
   char* valueStr = strtok(arguments, " ");
@@ -144,9 +166,49 @@ void loop() {
   if (position >= NUM_LEDS_PER_STRIP) {
     position -= NUM_LEDS_PER_STRIP; // Wrap around for the LED ring
   }
+    
+  if(rightFlashing) {
+    rightBrightness += 1;
+  } 
+  if (leftFlashing) {
+    leftBrightness += 1;  
+  }
+
+  // This bit of code handles the flashing of left && right 
+  if(leftBrightness == 0 && rightBrightness == 0) {
+    fill_solid(leds, NUM_LEDS_PER_STRIP, CRGB::Black);
+  } else {
+    fill_solid(leds, NUM_LEDS_PER_STRIP, CRGB::Blue);
+    FastLED[0].showLeds(leftBrightness);
+    FastLED[1].showLeds(rightBrightness);
+
+    if(!rightFlashing) {
+      rightBrightness -= 1;
+    } 
+    if (!leftFlashing) {
+      leftBrightness -= 1;  
+    }
+    
+    if(leftBrightness < 0) {
+      leftBrightness = 0;
+    } 
+    if(leftBrightness >= 255){
+      leftFlashing = false;
+    }
+
+    if(rightBrightness < 0) { 
+      rightBrightness = 0;
+    }
+
+    if(rightBrightness >= 255){
+      rightFlashing = false;
+    }
+    return;
+  }
+
 
   // Clear the LED buffer
-  fill_solid(leds, NUM_LEDS_PER_STRIP, CRGB::Black);
+  
 
   // Update flickering effect based on time
   unsigned long currentTime = millis();
@@ -189,7 +251,8 @@ void loop() {
     heatingEnabled = false;
     lightOffTime = 0;
   }
-  
+
+
   // Calculate brightness for each LED based on its distance from position
   for (int i = 0; i < NUM_LEDS_PER_STRIP; i++) {
     float distance = abs(position - i);  // How far this LED is from the light source
