@@ -70,6 +70,8 @@ class PygameWrapper:
         self._drone_sound = pygame.mixer.Sound("sounds/magical-spinning-fixed.mp3")
         self._final_bell_sound = pygame.mixer.Sound("sounds/final_bell.mp3")
 
+        self._error_sound = pygame.mixer.Sound("sounds/clank1.mp3")
+
         self._overlay_sounds_count = 0
 
         self._overlay_sound_channel = pygame.mixer.Channel(0)
@@ -80,6 +82,8 @@ class PygameWrapper:
 
         self._final_bell_channel = pygame.mixer.Channel(2)
         self._final_bell_channel.set_endevent(self.bell_completed)
+
+        self._error_channel = pygame.mixer.Channel(3)
         self._device_controller = RFIDController(on_card_detected_callback=onCardDetected,
                                     on_card_lost_callback=self.onCardLost,
                                     traits_detected_callback=self.traitsDetectedCallback)
@@ -96,6 +100,7 @@ class PygameWrapper:
     def setErrorState(self, error_state: int):
         light_device = self._device_controller.getDeviceByName("LIGHT")
         volt = error_state * 45
+        self._error_channel.play(self._error_sound)
         if light_device:
             light_device.sendRawCommand(f"VOLT {volt}")
             logging.info(f"Setting error state to {volt}")
