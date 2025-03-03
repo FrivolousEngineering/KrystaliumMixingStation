@@ -91,6 +91,7 @@ class PygameWrapper:
             light_device.sendRawCommand(f"VOLT {volt}")
             logging.info(f"Setting error state to {volt}")
         if error_state > 0:
+            light_device.sendRawCommand(f"ERROR BOTH");
             self._triggerEvent(self.error_reset, self.ERROR_TIMEOUT)
 
     def startMixingProcess(self):
@@ -221,13 +222,22 @@ class PygameWrapper:
             self._left_sample = found_sample
             if light_device:
                 light_device.sendRawCommand("FLASH LEFT")
+            if self._front_sample is None:
+                light_device.sendRawCommand("ERROR LEFT")
+            else:
+                if self._right_sample is not None:
+                    self.startMixingProcess()
         elif name == "RIGHT":
             self._right_sample = found_sample
             if light_device:
                 light_device.sendRawCommand("FLASH RIGHT")
+                if self._front_sample is None:
+                    light_device.sendRawCommand("ERROR RIGHT")
+                else:
+                    if self._left_sample is not None:
+                        self.startMixingProcess()
         elif name == "FRONT":
             self._front_sample = found_sample
-            
         else:
             logging.warning(f"Got a reader with a weird name: {name}")
 

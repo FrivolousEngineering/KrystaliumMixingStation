@@ -100,34 +100,61 @@ void processCommand(String command) {
   }
 }
 
-void handleErrorCommand(char* arguments) {
-  char* directionStr = strtok(arguments, " ");
-  handleFlashCommand(directionStr);
-  
-  if(strcmp(directionStr, "RIGHT") != 0){
-    rightFlashingRed = true;
-  }
-  if(strcmp(directionStr, "LEFT") != 0){
-    leftFlashingRed = true;
-  }
-}
-
 void handleFlashCommand(char* arguments) {
-
   char* directionStr = strtok(arguments, " ");
-  if(strcmp(directionStr, "RIGHT") != 0) {
-    Serial.println("LEFT!");
+  if (directionStr == NULL) {
+    Serial.println("Missing FLASH argument");
+    return;
+  }
+  
+  // Flash in blue for FLASH commands
+  if (strcmp(directionStr, "LEFT") == 0) {
     leftBrightness = 0;
     leftFlashing = true;
     leftFlashingRed = false;
-  } else if(strcmp(directionStr, "LEFT") != 0) {
-    Serial.println("RIGHT");
+  } else if (strcmp(directionStr, "RIGHT") == 0) {
     rightBrightness = 0;
     rightFlashing = true;
-    rightFlashingRed = false; 
+    rightFlashingRed = false;
+  } else if (strcmp(directionStr, "BOTH") == 0) {
+    leftBrightness = 0;
+    rightBrightness = 0;
+    leftFlashing = true;
+    rightFlashing = true;
+    leftFlashingRed = false;
+    rightFlashingRed = false;
+  } else {
+    Serial.println("Invalid FLASH argument");
   }
 }
+
+void handleErrorCommand(char* arguments) {
+  char* directionStr = strtok(arguments, " ");
+  if (directionStr == NULL) {
+    Serial.println("Missing ERROR argument");
+    return;
+  }
   
+  // Flash in red for ERROR commands
+  if (strcmp(directionStr, "LEFT") == 0) {
+    leftBrightness = 0;
+    leftFlashing = true;
+    leftFlashingRed = true;
+  } else if (strcmp(directionStr, "RIGHT") == 0) {
+    rightBrightness = 0;
+    rightFlashing = true;
+    rightFlashingRed = true;
+  } else if (strcmp(directionStr, "BOTH") == 0) {
+    leftBrightness = 0;
+    rightBrightness = 0;
+    leftFlashing = true;
+    rightFlashing = true;
+    leftFlashingRed = true;
+    rightFlashingRed = true;
+  } else {
+    Serial.println("Invalid ERROR argument");
+  }
+}
 
 void handleVoltCommand(char* arguments){
   char* valueStr = strtok(arguments, " ");
@@ -201,21 +228,23 @@ void loop() {
   if(leftBrightness == 0 && rightBrightness == 0) {
     fill_solid(leds, NUM_LEDS_PER_STRIP, CRGB::Black);
   } else {
-    if(rightFlashingRed){
-      fill_solid(leds, NUM_LEDS_PER_STRIP, CRGB::Red);
-    }  else {
-      fill_solid(leds, NUM_LEDS_PER_STRIP, CRGB::Blue);
-    }
-    FastLED[0].showLeds(leftBrightness);
-    
-    if(leftFlashingRed){
-      fill_solid(leds, NUM_LEDS_PER_STRIP, CRGB::Red);
-    }  else {
-      fill_solid(leds, NUM_LEDS_PER_STRIP, CRGB::Blue);
-    }
 
-    FastLED[1].showLeds(rightBrightness);
-
+    if( rightBrightness > 0) {
+      if(rightFlashingRed){
+        fill_solid(leds, NUM_LEDS_PER_STRIP, CRGB::Red);
+      } else {
+        fill_solid(leds, NUM_LEDS_PER_STRIP, CRGB::Blue);
+      }
+      FastLED[0].showLeds(rightBrightness);
+    }
+    if(leftBrightness > 0) {
+      if(leftFlashingRed){
+        fill_solid(leds, NUM_LEDS_PER_STRIP, CRGB::Red);
+      }  else {
+        fill_solid(leds, NUM_LEDS_PER_STRIP, CRGB::Blue);
+      }
+      FastLED[1].showLeds(leftBrightness);
+    }
     if(!rightFlashing) {
       rightBrightness -= 1;
     } 
