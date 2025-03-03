@@ -250,7 +250,10 @@ class PygameWrapper:
                 self._error_channel.play(random.choice(self._error_sounds))
 
             else:
-                if self._right_sample is not None:
+                if not isinstance(self._left_sample, RawSample):
+                    light_device.sendRawCommand("ERROR RIGHT")
+                    self._error_channel.play(random.choice(self._error_sounds))
+                elif self._right_sample is not None:
                     self.startMixingProcess()
         elif name == "RIGHT":
             self._right_sample = found_sample
@@ -263,7 +266,10 @@ class PygameWrapper:
                     light_device.sendRawCommand("ERROR RIGHT")
                     self._error_channel.play(random.choice(self._error_sounds))
                 else:
-                    if self._left_sample is not None:
+                    if not isinstance(self._right_sample, RawSample):
+                        light_device.sendRawCommand("ERROR RIGHT")
+                        self._error_channel.play(random.choice(self._error_sounds))
+                    elif self._left_sample is not None:
                         self.startMixingProcess()
         elif name == "FRONT":
             self._front_sample = found_sample
