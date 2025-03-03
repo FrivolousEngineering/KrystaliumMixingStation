@@ -164,9 +164,11 @@ class PygameWrapper:
         self._is_mixing = True
 
 
-    def _lightCallback(self, line):
-        print("CALLBACK " , line)
-        pass
+    def _lightCallback(self, line: str):
+        if line.startswith("SWITCH: "):
+            # The arm just changed state.
+            if "down" in line:
+                self.startMixingProcess()
 
     @staticmethod
     def _triggerEvent(event_type, min_time: int, max_time: int = 0) -> None:
@@ -225,7 +227,7 @@ class PygameWrapper:
                 light_device.sendRawCommand("FLASH RIGHT")
         elif name == "FRONT":
             self._front_sample = found_sample
-            self.startMixingProcess() # Debug code
+            #self.startMixingProcess() # Debug code
         else:
             logging.warning(f"Got a reader with a weird name: {name}")
 
