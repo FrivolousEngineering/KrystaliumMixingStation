@@ -157,8 +157,8 @@ class PygameWrapper:
 
         # Everything should be good! Whooo
         self._sample_to_write = SampleController.createRefinedSampleFromRawSamples(self._left_sample, self._right_sample)
-        #self.markSampleAsDepleted("RIGHT")
-        #self.markSampleAsDepleted("LEFT")
+        self.markSampleAsDepleted("RIGHT")
+        self.markSampleAsDepleted("LEFT")
 
         # Start the light effects
         light_device = self._device_controller.getDeviceByName("LIGHT")
