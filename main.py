@@ -205,10 +205,16 @@ class PygameWrapper:
 
         logging.info(f"Reader {name} found sample {found_sample}")
 
+        light_device = self._device_controller.getDeviceByName("LIGHT")
+
         if name == "LEFT":
             self._left_sample = found_sample
+            if light_device:
+                light_device.sendRawCommand("FLASH LEFT")
         elif name == "RIGHT":
             self._right_sample = found_sample
+            if light_device:
+                light_device.sendRawCommand("FLASH RIGHT")
         elif name == "FRONT":
             self._front_sample = found_sample
             self.startMixingProcess() # Debug code
