@@ -50,6 +50,13 @@ class PygameWrapper:
     error_reset = pygame.USEREVENT + 3
     bell_completed = pygame.USEREVENT + 4
 
+
+    refined_depleted_error_state = 1
+    left_raw_depleted_error_state = 2
+    right_raw_depleted_error_state = 3
+
+    other_error_state = 4
+
     ERROR_TIMEOUT = 10000  # 10 seconds  # After how many seconds should the error on voltmeter be removed?
 
     def __init__(self):
@@ -88,12 +95,18 @@ class PygameWrapper:
 
     def setErrorState(self, error_state: int):
         light_device = self._device_controller.getDeviceByName("LIGHT")
-        volt = error_state * 30
+        volt = error_state * 45
         if light_device:
             light_device.sendRawCommand(f"VOLT {volt}")
             logging.info(f"Setting error state to {volt}")
         if error_state > 0:
-            light_device.sendRawCommand(f"ERROR BOTH");
+
+            if error_state == self.refined_depleted_error_state:
+                light_device.sendRawCommand(f"ERROR BOTH")
+            elif error_state == self.right_raw_depleted_error_state:
+                light_device.sendRawCommand(f"ERROR RIGHT")
+            elif error_state == self.left_raw_depleted_error_state:
+                light_device.sendRawCommand("ERROR LEFT")
             self._triggerEvent(self.error_reset, self.ERROR_TIMEOUT)
 
     def startMixingProcess(self):
@@ -106,33 +119,33 @@ class PygameWrapper:
         # Ensure that all the samples are set!
         if self._left_sample is None:
             errors.append("Left sample is missing")
-            error_state = 1
+            error_state = self.other_error_state
         if self._right_sample is None:
             errors.append("Right sample is missing")
-            error_state = 3
+            error_state = self.other_error_state
         if self._front_sample is None:
             errors.append("Front sample is missing")
-            error_state = 5
+            error_state = self.other_error_state
 
         if not isinstance(self._left_sample, RawSample):
             errors.append("Left sample is not of type RawSample")
-            error_state = 2
+            error_state = self.other_error_state
         if not isinstance(self._right_sample, RawSample):
             errors.append("Right sample is not of type RawSample")
-            error_state = 4
+            error_state = self.other_error_state
         if not isinstance(self._front_sample, RefinedSample):
             errors.append("Front sample is not of type RefinedSample")
-            error_state = 6
+            error_state = self.other_error_state
 
         if self._left_sample and self._left_sample.depleted:
             errors.append("Left sample is depleted")
-            error_state = 4
+            error_state = self.left_raw_depleted_error_state
         if self._right_sample and self._right_sample.depleted:
             errors.append("Right sample is depleted")
-            error_state = 5
+            error_state = self.right_raw_depleted_error_state
         if self._front_sample and not self._front_sample.depleted:
             errors.append("Front sample isn't depleted")
-            error_state = 6
+            error_state = self.refined_depleted_error_state
 
         left_device = self._device_controller.getDeviceByName("LEFT")
         right_device = self._device_controller.getDeviceByName("RIGHT")
@@ -140,13 +153,13 @@ class PygameWrapper:
 
         if not left_device:
             errors.append("Could not find RFID reader on left")
-            error_state = 7
+            error_state = self.other_error_state
         if not right_device:
             errors.append("Could not find RFID reader on right")
-            error_state = 7
+            error_state = self.other_error_state
         if not front_device:
             errors.append("Could not find RFID reader on front")
-            error_state = 7
+            error_state = self.other_error_state
 
         if error_state is not None:
             self.setErrorState(error_state)
@@ -223,7 +236,10 @@ class PygameWrapper:
         if name == "LEFT":
             self._left_sample = found_sample
             if light_device:
-                light_device.sendRawCommand("FLASH LEFT")
+                if self._left_sample.depleted:
+                    self.setErrorState(self.left_raw_depleted_error_state)
+                else:
+                    light_device.sendRawCommand("FLASH LEFT")
             if self._front_sample is None:
                 light_device.sendRawCommand("ERROR LEFT")
             else:
@@ -232,7 +248,10 @@ class PygameWrapper:
         elif name == "RIGHT":
             self._right_sample = found_sample
             if light_device:
-                light_device.sendRawCommand("FLASH RIGHT")
+                if self._right_sample.depleted:
+                    self.setErrorState(self.right_raw_depleted_error_state)
+                else:
+                    light_device.sendRawCommand("FLASH RIGHT")
                 if self._front_sample is None:
                     light_device.sendRawCommand("ERROR RIGHT")
                 else:
@@ -240,8 +259,10 @@ class PygameWrapper:
                         self.startMixingProcess()
         elif name == "FRONT":
             self._front_sample = found_sample
-            if (self._left_sample is None or self._right_sample is None) and not self._is_mixing:
+            if (self._left_sample is not None or self._right_sample is not None) and not self._is_mixing:
                 light_device.sendRawCommand("ERROR BOTH")
+                print("NOPE")
+                self.setErrorState(4)
         else:
             logging.warning(f"Got a reader with a weird name: {name}")
 
