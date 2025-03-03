@@ -70,7 +70,7 @@ class PygameWrapper:
         self._drone_sound = pygame.mixer.Sound("sounds/magical-spinning-fixed.mp3")
         self._final_bell_sound = pygame.mixer.Sound("sounds/final_bell.mp3")
 
-        self._error_sound = pygame.mixer.Sound("sounds/clank1.mp3")
+        self._error_sounds = [pygame.mixer.Sound("sounds/clank1.mp3"), pygame.mixer.Sound("sounds/clank2.mp3"), pygame.mixer.Sound("sounds/clank3.mp3")]
 
         self._overlay_sounds_count = 0
 
@@ -105,7 +105,7 @@ class PygameWrapper:
             light_device.sendRawCommand(f"VOLT {volt}")
             logging.info(f"Setting error state to {volt}")
         if error_state > 0:
-            self._error_channel.play(self._error_sound)
+            self._error_channel.play(random.choice(self._error_sounds))
             if error_state == self.refined_depleted_error_state:
                 light_device.sendRawCommand(f"ERROR BOTH")
             elif error_state == self.right_raw_depleted_error_state:
@@ -247,6 +247,8 @@ class PygameWrapper:
                     light_device.sendRawCommand("FLASH LEFT")
             if self._front_sample is None:
                 light_device.sendRawCommand("ERROR LEFT")
+                self._error_channel.play(random.choice(self._error_sounds))
+
             else:
                 if self._right_sample is not None:
                     self.startMixingProcess()
@@ -259,6 +261,7 @@ class PygameWrapper:
                     light_device.sendRawCommand("FLASH RIGHT")
                 if self._front_sample is None:
                     light_device.sendRawCommand("ERROR RIGHT")
+                    self._error_channel.play(random.choice(self._error_sounds))
                 else:
                     if self._left_sample is not None:
                         self.startMixingProcess()
@@ -266,7 +269,6 @@ class PygameWrapper:
             self._front_sample = found_sample
             if (self._left_sample is not None or self._right_sample is not None) and not self._is_mixing:
                 light_device.sendRawCommand("ERROR BOTH")
-                print("NOPE")
                 self.setErrorState(4)
         else:
             logging.warning(f"Got a reader with a weird name: {name}")
