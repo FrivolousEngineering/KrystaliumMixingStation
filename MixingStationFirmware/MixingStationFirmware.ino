@@ -46,6 +46,9 @@ int rightBrightness = 0;
 int leftFlashing = false;
 int rightFlashing = false;
 
+bool lastReportedSwitchState = false; // Open
+int switchCountState = 0;
+
 void setup() {
   FastLED.addLeds<WS2812, LEFTLEDRINGPIN, GRB>(leds, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
   FastLED.addLeds<WS2812, RIGHTLEDRINGPIN, GRB>(leds, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
@@ -162,7 +165,22 @@ void loop() {
     processCommand(command);
   }
 
-  Serial.println(analogRead(TILTPIN));
+  bool currentSwitchState = (analogRead(TILTPIN) > 512);
+
+  if (currentSwitchState != lastReportedSwitchState) {
+    // A potential change detected; count this tick.
+    switchCountState++;
+    if (switchCountState >= 10) {
+      // Confirmed state change after 5 consecutive ticks.
+      lastReportedSwitchState = currentSwitchState;
+      Serial.println(currentSwitchState ? "SWITCH: up" : "SWITCH: down");
+      switchCountState = 0; // Reset counter after state change.
+    }
+  } else {
+    // No change detected, so reset counter.
+    switchCountState = 0;
+  }
+  
    
   // Move the floating-point position
   position += SPEED;
