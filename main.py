@@ -60,7 +60,7 @@ class PygameWrapper:
 
         self._overlay_sounds= [pygame.mixer.Sound("sounds/MagicOverlay/magic-normal.mp3"), pygame.mixer.Sound("sounds/MagicOverlay/magic-high.mp3"), pygame.mixer.Sound("sounds/MagicOverlay/magic-low.mp3"), pygame.mixer.Sound("sounds/MagicOverlay/magic-distorted.mp3")]
         self._drone_sound = pygame.mixer.Sound("sounds/magical-spinning-fixed.mp3")
-        self._final_bell_sound = pygame.mixer.Sound("sounds/final-bell.mp3")
+        self._final_bell_sound = pygame.mixer.Sound("sounds/final_bell.mp3")
 
         self._overlay_sounds_count = 0
 
