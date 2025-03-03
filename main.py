@@ -100,12 +100,12 @@ class PygameWrapper:
     def setErrorState(self, error_state: int):
         light_device = self._device_controller.getDeviceByName("LIGHT")
         volt = error_state * 45
-        self._error_channel.play(self._error_sound)
+
         if light_device:
             light_device.sendRawCommand(f"VOLT {volt}")
             logging.info(f"Setting error state to {volt}")
         if error_state > 0:
-
+            self._error_channel.play(self._error_sound)
             if error_state == self.refined_depleted_error_state:
                 light_device.sendRawCommand(f"ERROR BOTH")
             elif error_state == self.right_raw_depleted_error_state:
