@@ -179,7 +179,6 @@ class PygameWrapper:
         # Everything should be good! Whooo
         self._sample_to_write = SampleController.createRefinedSampleFromRawSamples(self._left_sample, self._right_sample)
         
-
         # Start the light effects
         light_device = self._device_controller.getDeviceByName("LIGHT")
         if light_device:
@@ -193,7 +192,9 @@ class PygameWrapper:
     def _lightCallback(self, line: str):
         if line.startswith("SWITCH: "):
             # The arm just changed state.
-            if "down" in line:
+            if "HIGH" in line:
+                #TODO; This should not yet start, right now it still uses the old logic (put things in in right order)
+                # That needs to be still changed
                 self.startMixingProcess()
 
     @staticmethod

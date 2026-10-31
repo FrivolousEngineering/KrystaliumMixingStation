@@ -217,12 +217,12 @@ void loop() {
   
   if(!switchState &&  digitalRead(SWITCHPIN) == HIGH) {
     // State of the switch has changed!
-    Serial.println("SWITCH HIGH");
+    Serial.println("SWITCH: HIGH");
     switchState = true;
   } 
 
   if(switchState && digitalRead(SWITCHPIN) == LOW) {
-    Serial.println("SWITCH LOW");
+    Serial.println("SWITCH: LOW");
     switchState = false;
   }
    
