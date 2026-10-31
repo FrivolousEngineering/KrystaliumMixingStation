@@ -317,6 +317,9 @@ class PygameWrapper:
                 # The front sample MUST be depleted!
                 self.setErrorState(self.refined_depleted_error_state)
                 return
+            else: 
+                if light_device:
+                    light_device.sendRawCommand("FLASH BOTH")
 
         else:
             logging.warning(f"Got a reader with a weird name: {name}")
