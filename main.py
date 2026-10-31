@@ -246,16 +246,16 @@ class PygameWrapper:
                     self.setErrorState(self.left_raw_depleted_error_state)
                 else:
                     light_device.sendRawCommand("FLASH LEFT")
-            if self._front_sample is None:
-                light_device.sendRawCommand("ERROR LEFT")
-                self._error_channel.play(random.choice(self._error_sounds))
-
-            else:
-                if not isinstance(self._left_sample, RawSample):
-                    light_device.sendRawCommand("ERROR RIGHT")
+                if self._front_sample is None:
+                    light_device.sendRawCommand("ERROR LEFT")
                     self._error_channel.play(random.choice(self._error_sounds))
-                elif self._right_sample is not None:
-                    self.startMixingProcess()
+
+                else:
+                    if not isinstance(self._left_sample, RawSample):
+                        light_device.sendRawCommand("ERROR RIGHT")
+                        self._error_channel.play(random.choice(self._error_sounds))
+                    elif self._right_sample is not None:
+                        self.startMixingProcess()
         elif name == "RIGHT":
             self._right_sample = found_sample
             if light_device:
