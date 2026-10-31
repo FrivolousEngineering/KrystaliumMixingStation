@@ -241,7 +241,6 @@ class PygameWrapper:
             self._error_channel.play(random.choice(self._error_sounds))
 
     def warnBoth(self):
-        def warnRight(self):
         light_device = self._device_controller.getDeviceByName("LIGHT")
         if light_device:
             light_device.sendRawCommand("ERROR BOTH")
