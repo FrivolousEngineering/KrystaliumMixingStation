@@ -101,6 +101,7 @@ class PygameWrapper:
     def setErrorState(self, error_state: int):
         light_device = self._device_controller.getDeviceByName("LIGHT")
         volt = error_state * 45
+        logging.info(f"Set error state was called {error_state}")
 
         if light_device:
             light_device.sendRawCommand(f"VOLT {volt}")
@@ -108,14 +109,15 @@ class PygameWrapper:
         if error_state > 0:
             self._error_channel.play(random.choice(self._error_sounds))
             if error_state == self.refined_depleted_error_state:
-                light_device.sendRawCommand(f"ERROR BOTH")
+                self.warnBoth()
             elif error_state == self.right_raw_depleted_error_state:
-                light_device.sendRawCommand(f"ERROR RIGHT")
+                self.warnRight()
             elif error_state == self.left_raw_depleted_error_state:
-                light_device.sendRawCommand("ERROR LEFT")
+                self.warnLeft()
             self._triggerEvent(self.error_reset, self.ERROR_TIMEOUT)
 
     def startMixingProcess(self):
+        logging.info("Attempting to start mixing")
         if self._is_mixing:
             logging.info("Mixing is already happening. Cant start twice")
             return
@@ -176,12 +178,14 @@ class PygameWrapper:
 
         # Everything should be good! Whooo
         self._sample_to_write = SampleController.createRefinedSampleFromRawSamples(self._left_sample, self._right_sample)
-        self.markSampleAsDepleted("RIGHT")
-        self.markSampleAsDepleted("LEFT")
+        
 
         # Start the light effects
         light_device = self._device_controller.getDeviceByName("LIGHT")
-        light_device.sendRawCommand("LIGHT ON 33000")
+        if light_device:
+            light_device.sendRawCommand("LIGHT ON 33000")
+        else: 
+            logging.warning("Could not find light device")
         self.startSounds()
         self._is_mixing = True
 
@@ -229,18 +233,21 @@ class PygameWrapper:
             logging.warning(f"Got a reader with a weird name (lost): {name}")
 
     def warnLeft(self):
+        logging.info("WARNING LEFT LIGHT")
         light_device = self._device_controller.getDeviceByName("LIGHT")
         if light_device:
             light_device.sendRawCommand("ERROR LEFT")
             self._error_channel.play(random.choice(self._error_sounds))
 
     def warnRight(self):
+        logging.info("WARNING RIGHT LIGHT")
         light_device = self._device_controller.getDeviceByName("LIGHT")
         if light_device:
             light_device.sendRawCommand("ERROR RIGHT")
             self._error_channel.play(random.choice(self._error_sounds))
 
     def warnBoth(self):
+        logging.info("WARNING BOTH LIGHTS")
         light_device = self._device_controller.getDeviceByName("LIGHT")
         if light_device:
             light_device.sendRawCommand("ERROR BOTH")
@@ -259,44 +266,57 @@ class PygameWrapper:
 
         if name == "LEFT":
             self._left_sample = found_sample
-            if light_device:
-                if self._left_sample.depleted:
-                    self.setErrorState(self.left_raw_depleted_error_state)
-                    self.warnLeft()
-                else:
+            if self._left_sample.depleted:
+                self.setErrorState(self.left_raw_depleted_error_state)
+                return
+            else:
+                if light_device:
                     light_device.sendRawCommand("FLASH LEFT")
-                
-                    if self._front_sample is None:
-                        # Can potentially be removed if we have the closing sensor. RIght now the order matters.
+            
+                if self._front_sample is None:
+                    # Can potentially be removed if we have the closing sensor. RIght now the order matters.
+                    self.warnLeft()
+                    return
+                else:
+                    if not isinstance(self._left_sample, RawSample):
+                        # The sample that was added is the wrong type, give error. 
                         self.warnLeft()
-                    else:
-                        if not isinstance(self._left_sample, RawSample):
-                            # The sample that was added is the wrong type, give error. 
-                            self.warnLeft()
-                        elif self._right_sample is not None:
-                            # All three samples are in place, time to start mixing
-                            self.startMixingProcess()
+                        return
+                    elif self._right_sample is not None:
+                        # All three samples are in place, time to start mixing
+                        self.startMixingProcess()
         elif name == "RIGHT":
             self._right_sample = found_sample
-            if light_device:
-                if self._right_sample.depleted:
-                    self.setErrorState(self.right_raw_depleted_error_state)
-                    self.warnRight()
-                else:
+            
+            if self._right_sample.depleted:
+                self.setErrorState(self.right_raw_depleted_error_state)
+                return
+            else:
+                if light_device:
                     light_device.sendRawCommand("FLASH RIGHT")
 
-                    if self._front_sample is None:
+                if self._front_sample is None:
+                    self.warnRight()
+                    return
+                else:
+                    if not isinstance(self._right_sample, RawSample):
                         self.warnRight()
-                    else:
-                        if not isinstance(self._right_sample, RawSample):
-                            self.warnRight()
-                        elif self._left_sample is not None:
-                            self.startMixingProcess()
+                        return
+                    elif self._left_sample is not None:
+                        self.startMixingProcess()
         elif name == "FRONT":
             self._front_sample = found_sample
+            # In the current setup, the front sample must be placed first. 
             if (self._left_sample is not None or self._right_sample is not None) and not self._is_mixing:
                 self.warnBoth()
                 self.setErrorState(4)
+                return
+
+            if not self._front_sample.depleted:
+                # The front sample MUST be depleted!
+                self.setErrorState(self.refined_depleted_error_state)
+                return
+
         else:
             logging.warning(f"Got a reader with a weird name: {name}")
 
@@ -327,6 +347,9 @@ class PygameWrapper:
                 if event.type == self.drone_completed:
                     # Mixing has completed!
                     self._overlay_sounds_count = 0
+
+                    self.markSampleAsDepleted("RIGHT")
+                    self.markSampleAsDepleted("LEFT")
 
 
                     trait_list = [self._sample_to_write.primary_action, self._sample_to_write.primary_target, self._sample_to_write.secondary_action,
