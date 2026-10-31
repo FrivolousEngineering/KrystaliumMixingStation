@@ -5,6 +5,7 @@
 #define NUM_LEDS_PER_STRIP 24
 #define VOLTMETER_PIN D6
 #define TILTPIN A0
+#define SWITCHPIN D8
 
 #define FADE_RADIUS 6  // Number of LEDs affected in the blur
 #define SPEED 0.6  // Movement speed (absolute)
@@ -21,9 +22,11 @@
 float position = 0.0;  // Floating point position to enable sub-pixel movement
 int voltmeter_value = 0;
 bool heatingEnabled = false;
+bool switchState = false;
 
 CRGB leds[NUM_LEDS_PER_STRIP];
 CRGBPalette16 currentPalette;
+
 
 // Gradient palette (slightly purple flickering effect)
 DEFINE_GRADIENT_PALETTE(gradient) {
@@ -56,9 +59,11 @@ void setup() {
   
   currentPalette = gradient;  // Load color palette
   pinMode(VOLTMETER_PIN, OUTPUT);   
+  pinMode(SWITCHPIN, INPUT_PULLDOWN_16);
   Serial.begin(115200);
   Serial.println("Booted");
   FastLED.setBrightness(0); // Start with brightness off
+  switchState = digitalRead(SWITCHPIN) == HIGH;
 }
 
 void processCommand(String command) {
@@ -209,7 +214,17 @@ void loop() {
     String command = Serial.readStringUntil('\n');
     processCommand(command);
   }
+  
+  if(!switchState &&  digitalRead(SWITCHPIN) == HIGH) {
+    // State of the switch has changed!
+    Serial.println("SWITCH HIGH");
+    switchState = true;
+  } 
 
+  if(switchState && digitalRead(SWITCHPIN) == LOW) {
+    Serial.println("SWITCH LOW");
+    switchState = false;
+  }
    
   // Move the floating-point position
   position += SPEED;
