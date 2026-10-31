@@ -228,6 +228,25 @@ class PygameWrapper:
         else:
             logging.warning(f"Got a reader with a weird name (lost): {name}")
 
+    def warnLeft(self):
+        light_device = self._device_controller.getDeviceByName("LIGHT")
+        if light_device:
+            light_device.sendRawCommand("ERROR LEFT")
+            self._error_channel.play(random.choice(self._error_sounds))
+
+    def warnRight(self):
+        light_device = self._device_controller.getDeviceByName("LIGHT")
+        if light_device:
+            light_device.sendRawCommand("ERROR RIGHT")
+            self._error_channel.play(random.choice(self._error_sounds))
+
+    def warnBoth(self):
+        def warnRight(self):
+        light_device = self._device_controller.getDeviceByName("LIGHT")
+        if light_device:
+            light_device.sendRawCommand("ERROR BOTH")
+            self._error_channel.play(random.choice(self._error_sounds))
+
     def traitsDetectedCallback(self, name: str, traits: List[str]):
         try:
             found_sample = SampleController.createSampleFromReaderString(traits)
@@ -244,38 +263,40 @@ class PygameWrapper:
             if light_device:
                 if self._left_sample.depleted:
                     self.setErrorState(self.left_raw_depleted_error_state)
+                    self.warnLeft()
                 else:
                     light_device.sendRawCommand("FLASH LEFT")
-                if self._front_sample is None:
-                    light_device.sendRawCommand("ERROR LEFT")
-                    self._error_channel.play(random.choice(self._error_sounds))
-
-                else:
-                    if not isinstance(self._left_sample, RawSample):
-                        light_device.sendRawCommand("ERROR RIGHT")
-                        self._error_channel.play(random.choice(self._error_sounds))
-                    elif self._right_sample is not None:
-                        self.startMixingProcess()
+                
+                    if self._front_sample is None:
+                        # Can potentially be removed if we have the closing sensor. RIght now the order matters.
+                        self.warnLeft()
+                    else:
+                        if not isinstance(self._left_sample, RawSample):
+                            # The sample that was added is the wrong type, give error. 
+                            self.warnLeft()
+                        elif self._right_sample is not None:
+                            # All three samples are in place, time to start mixing
+                            self.startMixingProcess()
         elif name == "RIGHT":
             self._right_sample = found_sample
             if light_device:
                 if self._right_sample.depleted:
                     self.setErrorState(self.right_raw_depleted_error_state)
+                    self.warnRight()
                 else:
                     light_device.sendRawCommand("FLASH RIGHT")
-                if self._front_sample is None:
-                    light_device.sendRawCommand("ERROR RIGHT")
-                    self._error_channel.play(random.choice(self._error_sounds))
-                else:
-                    if not isinstance(self._right_sample, RawSample):
-                        light_device.sendRawCommand("ERROR RIGHT")
-                        self._error_channel.play(random.choice(self._error_sounds))
-                    elif self._left_sample is not None:
-                        self.startMixingProcess()
+
+                    if self._front_sample is None:
+                        self.warnRight()
+                    else:
+                        if not isinstance(self._right_sample, RawSample):
+                            self.warnRight()
+                        elif self._left_sample is not None:
+                            self.startMixingProcess()
         elif name == "FRONT":
             self._front_sample = found_sample
             if (self._left_sample is not None or self._right_sample is not None) and not self._is_mixing:
-                light_device.sendRawCommand("ERROR BOTH")
+                self.warnBoth()
                 self.setErrorState(4)
         else:
             logging.warning(f"Got a reader with a weird name: {name}")
