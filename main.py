@@ -284,7 +284,10 @@ class PygameWrapper:
 
         elif name == "FRONT":
             self._front_sample = found_sample
-
+            if not isinstance(self._front_sample, RefinedSample):
+                self.setErrorState(self.refined_depleted_error_state)
+                return
+            
             if not self._front_sample.depleted:
                 # The front sample MUST be depleted!
                 self.setErrorState(self.refined_depleted_error_state)
