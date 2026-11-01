@@ -188,7 +188,6 @@ class PygameWrapper:
         self.startSounds()
         self._is_mixing = True
 
-
     def _lightCallback(self, line: str):
         if line.startswith("SWITCH: "):
             # The arm just changed state.
@@ -273,45 +272,18 @@ class PygameWrapper:
             else:
                 if light_device:
                     light_device.sendRawCommand("FLASH LEFT")
-            
-                if self._front_sample is None:
-                    # Can potentially be removed if we have the closing sensor. RIght now the order matters.
-                    self.warnLeft()
-                    return
-                else:
-                    if not isinstance(self._left_sample, RawSample):
-                        # The sample that was added is the wrong type, give error. 
-                        self.warnLeft()
-                        return
-                    elif self._right_sample is not None:
-                        # All three samples are in place, time to start mixing
-                        self.startMixingProcess()
+
         elif name == "RIGHT":
             self._right_sample = found_sample
             
             if self._right_sample.depleted:
                 self.setErrorState(self.right_raw_depleted_error_state)
-                return
             else:
                 if light_device:
                     light_device.sendRawCommand("FLASH RIGHT")
 
-                if self._front_sample is None:
-                    self.warnRight()
-                    return
-                else:
-                    if not isinstance(self._right_sample, RawSample):
-                        self.warnRight()
-                        return
-                    elif self._left_sample is not None:
-                        self.startMixingProcess()
         elif name == "FRONT":
             self._front_sample = found_sample
-            # In the current setup, the front sample must be placed first. 
-            if (self._left_sample is not None or self._right_sample is not None) and not self._is_mixing:
-                self.warnBoth()
-                self.setErrorState(4)
-                return
 
             if not self._front_sample.depleted:
                 # The front sample MUST be depleted!
@@ -320,7 +292,6 @@ class PygameWrapper:
             else: 
                 if light_device:
                     light_device.sendRawCommand("FLASH BOTH")
-
         else:
             logging.warning(f"Got a reader with a weird name: {name}")
 
